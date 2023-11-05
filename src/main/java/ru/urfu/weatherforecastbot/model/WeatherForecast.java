@@ -11,6 +11,6 @@ import java.time.LocalDateTime;
  * @param pressure             атмосферное давление (мм рт. ст.)
  * @param humidity             относительная влажность (%)
  */
-public record WeatherForecast(LocalDateTime dateTime, double temperature, double feelsLikeTemperature, double pressure,
-                              double humidity) {
+public record WeatherForecast(LocalDateTime dateTime, double temperature, double feelsLikeTemperature, int pressure,
+                              int humidity) {
 }
