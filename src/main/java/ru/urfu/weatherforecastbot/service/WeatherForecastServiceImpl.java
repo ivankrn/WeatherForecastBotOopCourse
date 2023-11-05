@@ -10,6 +10,7 @@ import ru.urfu.weatherforecastbot.model.Place;
 import ru.urfu.weatherforecastbot.model.WeatherForecast;
 
 import java.util.List;
+import java.util.Optional;
 
 @Service
 public class WeatherForecastServiceImpl implements WeatherForecastService {
@@ -30,13 +31,16 @@ public class WeatherForecastServiceImpl implements WeatherForecastService {
 
     @Override
     public List<WeatherForecast> getForecast(String placeName, int daysCount) {
-        Place place = geocodingService.findPlaceByName(placeName);
+        Optional<Place> place = geocodingService.findPlaceByName(placeName);
+        if (place.isEmpty()) {
+            return null;
+        }
         return webClient.get()
                 .uri(uriBuilder -> uriBuilder
-                        .queryParam("latitude", place.latitude())
-                        .queryParam("longitude", place.longitude())
+                        .queryParam("latitude", place.get().latitude())
+                        .queryParam("longitude", place.get().longitude())
                         .queryParam("hourly", "temperature_2m,relativehumidity_2m,apparent_temperature,surface_pressure")
-                        .queryParam("timezone", place.timezone())
+                        .queryParam("timezone", place.get().timezone())
                         .queryParam("forecast_days", daysCount)
                         .build())
                 .retrieve()

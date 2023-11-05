@@ -11,6 +11,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import ru.urfu.weatherforecastbot.model.Place;
 
+import java.util.Optional;
+
 @Service
 public class GeocodingServiceImpl implements GeocodingService {
     
@@ -24,7 +26,7 @@ public class GeocodingServiceImpl implements GeocodingService {
             .build();
 
     @Override
-    public Place findPlaceByName(String name) {
+    public Optional<Place> findPlaceByName(String name) {
         return webClient.get()
                 .uri(uriBuilder -> uriBuilder
                         .queryParam("name", name)
@@ -35,12 +37,13 @@ public class GeocodingServiceImpl implements GeocodingService {
                 .bodyToMono(JsonNode.class)
                 .map(node -> node.path("results").path(0))
                 .map(node -> {
+                    Place place = null;
                     try {
-                        return mapper.treeToValue(node, Place.class);
+                        place = mapper.treeToValue(node, Place.class);
                     } catch (JsonProcessingException e) {
                         logger.error(e.getMessage());
-                        return null;
                     }
+                    return Optional.ofNullable(place);
                 })
                 .block();
     }

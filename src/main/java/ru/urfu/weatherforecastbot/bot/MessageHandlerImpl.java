@@ -30,22 +30,30 @@ public class MessageHandlerImpl implements MessageHandler {
             String[] receivedText = message.getText().split(" ");
             String command = receivedText[0];
             if (command.equals("/info")) {
-                String place = receivedText[1];
-                responseMessage.setText(getTodayForecasts(place));
-                // TODO: 05.11.2023 Добавить отправку прогноза на неделю, команды /start и /help
+                if (receivedText.length < 2) {
+                    responseMessage.setText(BotText.WRONG_COMMAND.text);
+                } else {
+                    String place = receivedText[1];
+                    responseMessage.setText(handleTodayForecasts(place));
+                }
             }
         }
+        // TODO: 05.11.2023 Добавить отправку прогноза на неделю, команды /start и /help
         return responseMessage;
     }
 
     /**
-     * Получает прогноз погоды по часам на сегодня и возвращает его в виде строки
+     * Обрабатывает запрос на получение прогноза погоды по часам на сегодня и возвращает ответ в виде строки
      *
      * @param placeName название места
-     * @return прогноз погоды в виде строки
+     * @return ответ в виде строки
      */
-    private String getTodayForecasts(String placeName) {
+    private String handleTodayForecasts(String placeName) {
+        // TODO: 05.11.2023 Спросить, запрашивать ли отдельно место и по нему производить поиск, или оставить как есть
         List<WeatherForecast> todayForecasts = weatherService.getForecast(placeName, 1);
+        if (todayForecasts == null) {
+            return BotText.NOT_FOUND.text;
+        }
         return forecastFormatter.formatTodayForecast(todayForecasts);
     }
 
