@@ -29,7 +29,7 @@ public class WeatherForecastBot extends TelegramLongPollingBot {
     }
 
     /**
-     * Обработчик событий (сообщений и прочего) Telegram
+     * Обработчик событий Telegram
      *
      * @param update событие
      */
@@ -56,7 +56,7 @@ public class WeatherForecastBot extends TelegramLongPollingBot {
      *
      * @param message сообщение
      */
-    void executeMessageWithLogging(BotApiMethod<?> message) {
+    private void executeMessageWithLogging(BotApiMethod<?> message) {
         try {
             execute(message);
         } catch (TelegramApiException e) {
