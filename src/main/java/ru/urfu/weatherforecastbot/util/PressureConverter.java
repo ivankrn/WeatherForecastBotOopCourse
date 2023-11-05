@@ -13,7 +13,7 @@ public class PressureConverter {
      * @return давление в мм рт. ст.
      */
     public static double convertHpaToMmhg(double pressureInHpa) {
-        return pressureInHpa * 1.33322;
+        return pressureInHpa * 0.75;
     }
 
 }
