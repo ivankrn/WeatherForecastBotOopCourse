@@ -9,7 +9,7 @@ import org.springframework.context.event.EventListener;
 import org.telegram.telegrambots.meta.TelegramBotsApi;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import org.telegram.telegrambots.updatesreceivers.DefaultBotSession;
-import ru.urfu.weatherforecastbot.WeatherForecastBot;
+import ru.urfu.weatherforecastbot.bot.WeatherForecastBot;
 
 /**
  * Инициализатор бота
