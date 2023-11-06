@@ -3,6 +3,7 @@ package ru.urfu.weatherforecastbot.service;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import ru.urfu.weatherforecastbot.model.WeatherForecast;
@@ -18,7 +19,12 @@ import static org.junit.jupiter.api.Assertions.*;
 class WeatherForecastsDeserializerTest {
 
     private final ObjectMapper mapper = new ObjectMapper();
-    private final WeatherForecastsDeserializer deserializer = new WeatherForecastsDeserializer();
+    private WeatherForecastsDeserializer deserializer;
+
+    @BeforeEach
+    void setUp() {
+        deserializer = new WeatherForecastsDeserializer();
+    }
 
     @Test
     @DisplayName("При валидном json десериализация должна проходить успешно")
@@ -98,7 +104,7 @@ class WeatherForecastsDeserializerTest {
     void givenMalformedJson_whenDeserialize_thenExceptionThrown() throws JsonProcessingException {
         String json = "{\"field\": \"value\"}";
         JsonNode jsonNode = mapper.readTree(json);
-        Exception exception = assertThrows(IllegalArgumentException.class,
+        assertThrows(IllegalArgumentException.class,
                 () -> deserializer.parseJsonResponseToWeatherForecasts(jsonNode));
     }
 
@@ -147,7 +153,7 @@ class WeatherForecastsDeserializerTest {
                 "  }\n" +
                 "}";
         JsonNode jsonNode = mapper.readTree(json);
-        Exception exception = assertThrows(IllegalArgumentException.class,
+        assertThrows(IllegalArgumentException.class,
                 () -> deserializer.parseJsonResponseToWeatherForecasts(jsonNode));
     }
 }
