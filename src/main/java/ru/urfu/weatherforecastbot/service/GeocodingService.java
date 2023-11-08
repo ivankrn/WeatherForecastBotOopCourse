@@ -5,7 +5,7 @@ import ru.urfu.weatherforecastbot.model.Place;
 import java.util.Optional;
 
 /**
- * Сервис для получения широты и долготы по названию места
+ * Сервис для получения широты, долготы и часового пояса по названию места
  */
 public interface GeocodingService {
 

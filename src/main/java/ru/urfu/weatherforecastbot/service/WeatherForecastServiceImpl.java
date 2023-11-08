@@ -15,9 +15,21 @@ import java.util.Optional;
 @Service
 public class WeatherForecastServiceImpl implements WeatherForecastService {
 
+    /**
+     * URL API для получения прогнозов погоды
+     */
     private final String BASE_URL = "https://api.open-meteo.com/v1/forecast";
+    /**
+     * Сервис для поиска мест
+     */
     private final GeocodingService geocodingService;
+    /**
+     * Десериализатор ответа сервера прогнозов погоды
+     */
     private final WeatherForecastsDeserializer weatherForecastsDeserializer;
+    /**
+     * Клиент для запросов API
+     */
     private final WebClient webClient = WebClient.builder()
             .baseUrl(BASE_URL)
             .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
@@ -39,7 +51,7 @@ public class WeatherForecastServiceImpl implements WeatherForecastService {
                 .uri(uriBuilder -> uriBuilder
                         .queryParam("latitude", place.get().latitude())
                         .queryParam("longitude", place.get().longitude())
-                        .queryParam("hourly", "temperature_2m,relativehumidity_2m,apparent_temperature,surface_pressure")
+                        .queryParam("hourly", "temperature_2m,apparent_temperature")
                         .queryParam("timezone", place.get().timezone())
                         .queryParam("forecast_days", daysCount)
                         .build())

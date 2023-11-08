@@ -18,9 +18,18 @@ import static org.junit.jupiter.api.Assertions.*;
  */
 class WeatherForecastsDeserializerTest {
 
+    /**
+     * JSON маппер
+     */
     private final ObjectMapper mapper = new ObjectMapper();
+    /**
+     * Десериализатор ответа сервера прогнозов погоды
+     */
     private WeatherForecastsDeserializer deserializer;
 
+    /**
+     * Подготавливает окружение перед тестами
+     */
     @BeforeEach
     void setUp() {
         deserializer = new WeatherForecastsDeserializer();
@@ -29,71 +38,66 @@ class WeatherForecastsDeserializerTest {
     @Test
     @DisplayName("При валидном json десериализация должна проходить успешно")
     void givenValidJson_whenDeserialize_thenReturnForecasts() throws JsonProcessingException {
-        String json = "{\n" +
-                "  \"latitude\": 56.875,\n" +
-                "  \"longitude\": 60.625,\n" +
-                "  \"generationtime_ms\": 0.0680685043334961,\n" +
-                "  \"utc_offset_seconds\": 18000,\n" +
-                "  \"timezone\": \"Asia/Yekaterinburg\",\n" +
-                "  \"timezone_abbreviation\": \"+05\",\n" +
-                "  \"elevation\": 254,\n" +
-                "  \"hourly_units\": {\n" +
-                "    \"time\": \"iso8601\",\n" +
-                "    \"temperature_2m\": \"°C\",\n" +
-                "    \"relativehumidity_2m\": \"%\",\n" +
-                "    \"apparent_temperature\": \"°C\",\n" +
-                "    \"surface_pressure\": \"hPa\"\n" +
-                "  },\n" +
-                "  \"hourly\": {\n" +
-                "    \"time\": [\n" +
-                "      \"2023-11-05T00:00\",\n" +
-                "      \"2023-11-05T01:00\",\n" +
-                "      \"2023-11-05T02:00\"\n" +
-                "    ],\n" +
-                "    \"temperature_2m\": [\n" +
-                "      -3.6,\n" +
-                "      -3.8,\n" +
-                "      -3.8\n" +
-                "    ],\n" +
-                "    \"relativehumidity_2m\": [\n" +
-                "      82,\n" +
-                "      82,\n" +
-                "      82\n" +
-                "    ],\n" +
-                "    \"apparent_temperature\": [\n" +
-                "      -7.5,\n" +
-                "      -7.7,\n" +
-                "      -7.7\n" +
-                "    ],\n" +
-                "    \"surface_pressure\": [\n" +
-                "      995.1,\n" +
-                "      995.8,\n" +
-                "      995.8\n" +
-                "    ]\n" +
-                "  }\n" +
-                "}";
+        String json = """
+                {
+                  "latitude": 56.875,
+                  "longitude": 60.625,
+                  "generationtime_ms": 0.0680685043334961,
+                  "utc_offset_seconds": 18000,
+                  "timezone": "Asia/Yekaterinburg",
+                  "timezone_abbreviation": "+05",
+                  "elevation": 254,
+                  "hourly_units": {
+                    "time": "iso8601",
+                    "temperature_2m": "°C",
+                    "relativehumidity_2m": "%",
+                    "apparent_temperature": "°C",
+                    "surface_pressure": "hPa"
+                  },
+                  "hourly": {
+                    "time": [
+                      "2023-11-05T00:00",
+                      "2023-11-05T01:00",
+                      "2023-11-05T02:00"
+                    ],
+                    "temperature_2m": [
+                      -3.6,
+                      -3.8,
+                      -3.8
+                    ],
+                    "relativehumidity_2m": [
+                      82,
+                      82,
+                      82
+                    ],
+                    "apparent_temperature": [
+                      -7.5,
+                      -7.7,
+                      -7.7
+                    ],
+                    "surface_pressure": [
+                      995.1,
+                      995.8,
+                      995.8
+                    ]
+                  }
+                }""";
         JsonNode jsonNode = mapper.readTree(json);
         List<WeatherForecast> expected = List.of(
                 new WeatherForecast(
                         LocalDateTime.of(2023, 11, 5, 0, 0),
                         -3.6,
-                        -7.5,
-                        746,
-                        82
+                        -7.5
                 ),
                 new WeatherForecast(
                         LocalDateTime.of(2023, 11, 5, 1, 0),
                         -3.8,
-                        -7.7,
-                        746,
-                        82
+                        -7.7
                 ),
                 new WeatherForecast(
                         LocalDateTime.of(2023, 11, 5, 2, 0),
                         -3.8,
-                        -7.7,
-                        746,
-                        82
+                        -7.7
                 )
         );
         assertEquals(expected, deserializer.parseJsonResponseToWeatherForecasts(jsonNode));
@@ -111,47 +115,48 @@ class WeatherForecastsDeserializerTest {
     @Test
     @DisplayName("При недостаточном количестве значений данных должно быть выброшено исключение")
     void givenNotEnoughData_whenDeserialize_thenExceptionThrown() throws JsonProcessingException {
-        String json = "{\n" +
-                "  \"latitude\": 56.875,\n" +
-                "  \"longitude\": 60.625,\n" +
-                "  \"generationtime_ms\": 0.0680685043334961,\n" +
-                "  \"utc_offset_seconds\": 18000,\n" +
-                "  \"timezone\": \"Asia/Yekaterinburg\",\n" +
-                "  \"timezone_abbreviation\": \"+05\",\n" +
-                "  \"elevation\": 254,\n" +
-                "  \"hourly_units\": {\n" +
-                "    \"time\": \"iso8601\",\n" +
-                "    \"temperature_2m\": \"°C\",\n" +
-                "    \"relativehumidity_2m\": \"%\",\n" +
-                "    \"apparent_temperature\": \"°C\",\n" +
-                "    \"surface_pressure\": \"hPa\"\n" +
-                "  },\n" +
-                "  \"hourly\": {\n" +
-                "    \"time\": [\n" +
-                "      \"2023-11-05T00:00\",\n" +
-                "      \"2023-11-05T01:00\",\n" +
-                "      \"2023-11-05T02:00\"\n" +
-                "    ],\n" +
-                "    \"temperature_2m\": [\n" +
-                "      -3.8\n" +
-                "    ],\n" +
-                "    \"relativehumidity_2m\": [\n" +
-                "      82,\n" +
-                "      82,\n" +
-                "      82\n" +
-                "    ],\n" +
-                "    \"apparent_temperature\": [\n" +
-                "      -7.5,\n" +
-                "      -7.7,\n" +
-                "      -7.7\n" +
-                "    ],\n" +
-                "    \"surface_pressure\": [\n" +
-                "      995.1,\n" +
-                "      995.8,\n" +
-                "      995.8\n" +
-                "    ]\n" +
-                "  }\n" +
-                "}";
+        String json = """
+                {
+                  "latitude": 56.875,
+                  "longitude": 60.625,
+                  "generationtime_ms": 0.0680685043334961,
+                  "utc_offset_seconds": 18000,
+                  "timezone": "Asia/Yekaterinburg",
+                  "timezone_abbreviation": "+05",
+                  "elevation": 254,
+                  "hourly_units": {
+                    "time": "iso8601",
+                    "temperature_2m": "°C",
+                    "relativehumidity_2m": "%",
+                    "apparent_temperature": "°C",
+                    "surface_pressure": "hPa"
+                  },
+                  "hourly": {
+                    "time": [
+                      "2023-11-05T00:00",
+                      "2023-11-05T01:00",
+                      "2023-11-05T02:00"
+                    ],
+                    "temperature_2m": [
+                      -3.8
+                    ],
+                    "relativehumidity_2m": [
+                      82,
+                      82,
+                      82
+                    ],
+                    "apparent_temperature": [
+                      -7.5,
+                      -7.7,
+                      -7.7
+                    ],
+                    "surface_pressure": [
+                      995.1,
+                      995.8,
+                      995.8
+                    ]
+                  }
+                }""";
         JsonNode jsonNode = mapper.readTree(json);
         assertThrows(IllegalArgumentException.class,
                 () -> deserializer.parseJsonResponseToWeatherForecasts(jsonNode));

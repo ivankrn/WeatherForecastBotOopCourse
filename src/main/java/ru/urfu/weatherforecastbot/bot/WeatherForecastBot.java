@@ -17,8 +17,17 @@ import ru.urfu.weatherforecastbot.config.BotConfig;
 @Component
 public class WeatherForecastBot extends TelegramLongPollingBot {
 
+    /**
+     * Конфигурация бота
+     */
     private final BotConfig botConfig;
+    /**
+     * Обработчик сообщений
+     */
     private final MessageHandler messageHandler;
+    /**
+     * Логгер
+     */
     private final Logger logger = LoggerFactory.getLogger(WeatherForecastBot.class);
 
     @Autowired
@@ -52,7 +61,7 @@ public class WeatherForecastBot extends TelegramLongPollingBot {
     }
 
     /**
-     * Выполняет сообщение Telegram с логированием.
+     * Выполняет сообщение Telegram с логированием
      *
      * @param message сообщение
      */

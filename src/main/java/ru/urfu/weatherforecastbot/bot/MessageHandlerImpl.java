@@ -12,7 +12,13 @@ import java.util.List;
 @Component
 public class MessageHandlerImpl implements MessageHandler {
 
+    /**
+     * Сервис для получения прогнозов погоды
+     */
     private final WeatherForecastService weatherService;
+    /**
+     * Форматировщик прогноза погоды в удобочитаемый вид
+     */
     private final WeatherForecastFormatter forecastFormatter;
 
     public MessageHandlerImpl(WeatherForecastService weatherService,

@@ -14,6 +14,9 @@ public enum BotText {
      */
     NOT_FOUND("Извините, данное место не найдено.");
 
+    /**
+     * Текст ответа
+     */
     public final String text;
 
     BotText(String text) {

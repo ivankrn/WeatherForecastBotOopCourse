@@ -16,8 +16,14 @@ import static org.junit.jupiter.api.Assertions.*;
  */
 class WeatherForecastFormatterImplTest {
 
+    /**
+     * Форматировщик прогноза погоды в удобочитаемый вид
+     */
     private WeatherForecastFormatter formatter;
 
+    /**
+     * Подготавливает окружение перед тестами
+     */
     @BeforeEach
     void setUp() {
         formatter = new WeatherForecastFormatterImpl();
@@ -31,7 +37,7 @@ class WeatherForecastFormatterImplTest {
         List<WeatherForecast> todayForecast = new ArrayList<>(hours);
         for (int hour = 0; hour < hours; hour++) {
             todayForecast.add(
-                    new WeatherForecast(today.withHour(hour), 0, 0, 740, 70));
+                    new WeatherForecast(today.withHour(hour), 0, 0));
         }
         String expected = """
                 \uD83C\uDF21️ Прогноз погоды на сегодня:

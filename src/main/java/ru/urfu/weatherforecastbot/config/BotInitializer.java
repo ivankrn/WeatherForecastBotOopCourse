@@ -17,7 +17,13 @@ import ru.urfu.weatherforecastbot.bot.WeatherForecastBot;
 @Configuration
 public class BotInitializer {
 
+    /**
+     * Бот для получения прогноза погоды
+     */
     private final WeatherForecastBot bot;
+    /**
+     * Логгер
+     */
     private final Logger logger = LoggerFactory.getLogger(BotInitializer.class);
 
     @Autowired
@@ -26,7 +32,7 @@ public class BotInitializer {
     }
 
     /**
-     * Инициализирует бота
+     * Инициализирует бота при запуске приложения
      */
     @EventListener({ContextRefreshedEvent.class})
     public void init() {

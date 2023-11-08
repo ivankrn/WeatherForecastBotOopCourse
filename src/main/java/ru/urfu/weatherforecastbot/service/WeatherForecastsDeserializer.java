@@ -3,14 +3,11 @@ package ru.urfu.weatherforecastbot.service;
 import com.fasterxml.jackson.databind.JsonNode;
 import org.springframework.stereotype.Component;
 import ru.urfu.weatherforecastbot.model.WeatherForecast;
-import ru.urfu.weatherforecastbot.util.PressureConverter;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
-
-// TODO: 03.11.2023 Спросить, нужно ли делать интерфейс
 
 /**
  * Десериализатор ответа сервера в список прогнозов погоды
@@ -18,7 +15,13 @@ import java.util.List;
 @Component
 public class WeatherForecastsDeserializer {
 
+    /**
+     * Форматировщик даты и времени для парсинга
+     */
     private final DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm");
+    /**
+     * Сообщение исключения
+     */
     private final String EXCEPTION_MESSAGE = "Wrong json provided: ";
 
     /**
@@ -34,15 +37,10 @@ public class WeatherForecastsDeserializer {
         }
         JsonNode times = hourlyData.get("time");
         JsonNode temperatures = hourlyData.get("temperature_2m");
-        JsonNode humidities = hourlyData.get("relativehumidity_2m");
         JsonNode feelsLikeTemperatures = hourlyData.get("apparent_temperature");
-        JsonNode pressures = hourlyData.get("surface_pressure");
-        if (times == null || temperatures == null || humidities == null
-                || feelsLikeTemperatures == null || pressures == null
+        if (times == null || temperatures == null || feelsLikeTemperatures == null
                 || times.size() != temperatures.size()
-                || times.size() != humidities.size()
-                || times.size() != feelsLikeTemperatures.size()
-                || times.size() != pressures.size()) {
+                || times.size() != feelsLikeTemperatures.size()) {
             throw new IllegalArgumentException(EXCEPTION_MESSAGE + response.asText());
         }
         List<WeatherForecast> forecasts = new ArrayList<>(times.size());
@@ -50,10 +48,8 @@ public class WeatherForecastsDeserializer {
             forecasts.add(new WeatherForecast(
                     LocalDateTime.parse(times.get(i).asText(), dateTimeFormatter),
                     temperatures.get(i).asDouble(),
-                    feelsLikeTemperatures.get(i).asDouble(),
-                    (int) PressureConverter.convertHpaToMmhg(pressures.get(i).asDouble()),
-                    humidities.get(i).asInt())
-            );
+                    feelsLikeTemperatures.get(i).asDouble()
+            ));
         }
         return forecasts;
     }

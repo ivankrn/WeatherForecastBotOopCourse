@@ -13,7 +13,6 @@ import org.telegram.telegrambots.meta.api.objects.Message;
 import ru.urfu.weatherforecastbot.model.WeatherForecast;
 import ru.urfu.weatherforecastbot.service.WeatherForecastService;
 import ru.urfu.weatherforecastbot.util.WeatherForecastFormatter;
-import ru.urfu.weatherforecastbot.util.WeatherForecastFormatterImpl;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -27,16 +26,30 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 @ExtendWith(MockitoExtension.class)
 class MessageHandlerImplTest {
 
+    /**
+     * Форматировщик прогноза погоды в удобочитаемый вид
+     */
+    @Mock
     private WeatherForecastFormatter forecastFormatter;
+    /**
+     * Сервис для получения прогнозов погоды
+     */
     @Mock
     private WeatherForecastService weatherService;
+    /**
+     * Обработчик сообщений
+     */
     private MessageHandler messageHandler;
+    /**
+     * Сообщение, пришедшее от пользователя и которое требуется обработать
+     */
     private Message userMessage;
 
+    /**
+     * Подготавливает окружение перед тестами
+     */
     @BeforeEach
     void setUp() {
-        // TODO: 05.11.2023 Спросить, можно ли не мокать одну из зависимостей, а использовать её реализацию
-        forecastFormatter = new WeatherForecastFormatterImpl();
         messageHandler = new MessageHandlerImpl(weatherService, forecastFormatter);
         userMessage = new Message();
         Chat userChat = new Chat();
@@ -54,9 +67,11 @@ class MessageHandlerImplTest {
         List<WeatherForecast> ekaterinburgTodayForecast = new ArrayList<>(hours);
         for (int hour = 0; hour < hours; hour++) {
             ekaterinburgTodayForecast.add(
-                    new WeatherForecast(today.withHour(hour), 0, 0, 740, 70));
+                    new WeatherForecast(today.withHour(hour), 0, 0));
         }
         Mockito.when(weatherService.getForecast("Екатеринбург", 1)).thenReturn(ekaterinburgTodayForecast);
+        Mockito.when(forecastFormatter.formatTodayForecast(ekaterinburgTodayForecast))
+                .thenReturn("Прогноз погоды на сегодня: ...");
         userMessage.setText("/info Екатеринбург");
         List<WeatherForecast> todayForecast = weatherService.getForecast("Екатеринбург", 1);
         String expectedTodayForecast = forecastFormatter.formatTodayForecast(todayForecast);

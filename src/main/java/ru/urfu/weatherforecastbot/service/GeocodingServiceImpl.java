@@ -15,11 +15,23 @@ import java.util.Optional;
 
 @Service
 public class GeocodingServiceImpl implements GeocodingService {
-    
+
+    /**
+     * URL API для поиска мест
+     */
     private final String BASE_URL = "https://geocoding-api.open-meteo.com/v1/search";
+    /**
+     * JSON маппер
+     */
     private final ObjectMapper mapper = new ObjectMapper();
+    /**
+     * Логгер
+     */
     private final Logger logger = LoggerFactory.getLogger(GeocodingServiceImpl.class);
 
+    /**
+     * Клиент для запросов API
+     */
     private final WebClient webClient = WebClient.builder()
             .baseUrl(BASE_URL)
             .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)

@@ -10,7 +10,13 @@ import org.springframework.context.annotation.Configuration;
 @ConfigurationProperties(prefix = "bot")
 public class BotConfig {
 
+    /**
+     * Название бота
+     */
     private String name;
+    /**
+     * Токен бота
+     */
     private String token;
 
     /**
