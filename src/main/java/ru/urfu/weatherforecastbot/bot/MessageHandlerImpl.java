@@ -37,11 +37,13 @@ public class MessageHandlerImpl implements MessageHandler {
             String command = receivedText[0];
             if (command.equals("/info")) {
                 if (receivedText.length < 2) {
-                    responseMessage.setText(BotText.WRONG_COMMAND.text);
+                    responseMessage.setText(BotText.WRONG_COMMAND_SYNTAX.text);
                 } else {
                     String place = receivedText[1];
                     responseMessage.setText(handleTodayForecasts(place));
                 }
+            } else {
+                responseMessage.setText(BotText.UNKNOWN_COMMAND.text);
             }
         }
         // TODO: 05.11.2023 Добавить отправку прогноза на неделю, команды /start и /help
