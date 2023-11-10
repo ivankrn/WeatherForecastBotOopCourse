@@ -57,7 +57,6 @@ public class MessageHandlerImpl implements MessageHandler {
      * @return ответ в виде строки
      */
     private String handleTodayForecasts(String placeName) {
-        // TODO: 05.11.2023 Спросить, запрашивать ли отдельно место и по нему производить поиск, или оставить как есть
         List<WeatherForecast> todayForecasts = weatherService.getForecast(placeName, 1);
         if (todayForecasts == null) {
             return BotText.NOT_FOUND.text;
