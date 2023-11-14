@@ -3,8 +3,12 @@ package ru.urfu.weatherforecastbot.util;
 import org.springframework.stereotype.Component;
 import ru.urfu.weatherforecastbot.model.WeatherForecast;
 
+import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Component
@@ -19,6 +23,30 @@ public class WeatherForecastFormatterImpl implements WeatherForecastFormatter {
     public String formatTodayForecast(List<WeatherForecast> forecasts) {
         StringBuilder sb = new StringBuilder("\uD83C\uDF21️ Прогноз погоды на сегодня:\n\n");
         sb.append(formatWeatherForecasts(forecasts));
+        return sb.toString();
+    }
+
+    @Override
+    public String formatWeekForecast(List<WeatherForecast> forecasts) {
+        Map<LocalDate, List<WeatherForecast>> forecastsByDate = forecasts.stream()
+                .collect(Collectors.groupingBy(weatherForecast -> weatherForecast.dateTime().toLocalDate()));
+
+        List<LocalDate> sortedDates = new ArrayList<>(forecastsByDate.keySet());
+        Collections.sort(sortedDates);
+
+        StringBuilder sb = new StringBuilder("\uD83C\uDF21️ Прогноз погоды на неделю вперед:");
+
+        for (LocalDate date : sortedDates) {
+            sb.append(formatDaySeparator(date));
+
+            List<WeatherForecast> dateForecasts = forecastsByDate.get(date);
+            String formattedForecasts = formatWeatherForecasts(dateForecasts.stream()
+                    .filter(weatherForecast -> weatherForecast.dateTime().getHour() % 4 == 0)
+                    .toList());
+
+            sb.append(formattedForecasts);
+        }
+
         return sb.toString();
     }
 
@@ -46,4 +74,14 @@ public class WeatherForecastFormatterImpl implements WeatherForecastFormatter {
         return forecasts.stream().map(this::formatWeatherForecast).collect(Collectors.joining("\n"));
     }
 
+    /**
+     * Форматирует строку-разделитель, которая указывает на начало нового дня в выходных данных
+     *
+     * @param day текущий день
+     * @return отформатированную строку-разделитель, которая указывает на начало нового дня
+     */
+    private String formatDaySeparator(LocalDate day) {
+        DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy");
+        return "\n\n" + dateFormatter.format(day) + ":\n";
+    }
 }

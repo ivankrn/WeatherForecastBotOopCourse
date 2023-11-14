@@ -20,6 +20,10 @@ public class MessageHandlerImpl implements MessageHandler {
      * Форматировщик прогноза погоды в удобочитаемый вид
      */
     private final WeatherForecastFormatter forecastFormatter;
+    /**
+     * Флаг, указываюший на то, что бот запущен
+     */
+    private boolean botStarted = false;
 
     public MessageHandlerImpl(WeatherForecastService weatherService,
                               WeatherForecastFormatter forecastFormatter) {
@@ -35,18 +39,36 @@ public class MessageHandlerImpl implements MessageHandler {
         if (message.hasText()) {
             String[] receivedText = message.getText().split(" ");
             String command = receivedText[0];
-            if (command.equals("/info")) {
-                if (receivedText.length < 2) {
-                    responseMessage.setText(BotText.WRONG_COMMAND_SYNTAX.text);
-                } else {
-                    String place = receivedText[1];
-                    responseMessage.setText(handleTodayForecasts(place));
-                }
+
+            if ("/start".equals(command)) {
+                botStarted = true;
+                responseMessage.setText(startBot());
+            } else if (!botStarted) {
+                responseMessage.setText("Пожалуйста, используйте /start для запуска бота.");
             } else {
-                responseMessage.setText(BotText.UNKNOWN_COMMAND.text);
+                switch (command) {
+                    case "/info" -> {
+                        if (receivedText.length < 2) {
+                            responseMessage.setText(BotText.WRONG_COMMAND_SYNTAX.text);
+                        } else {
+                            String place = receivedText[1];
+                            responseMessage.setText(handleTodayForecasts(place));
+                        }
+                    }
+                    case "/info_week" -> {
+                        if (receivedText.length < 2) {
+                            responseMessage.setText(BotText.WRONG_COMMAND_SYNTAX.text);
+                        } else {
+                            String place = receivedText[1];
+                            responseMessage.setText(handleWeekForecasts(place));
+                        }
+                    }
+                    case "/help" -> responseMessage.setText(getHelpMessage());
+                    default -> responseMessage.setText(BotText.UNKNOWN_COMMAND.text);
+                }
             }
         }
-        // TODO: 05.11.2023 Добавить отправку прогноза на неделю, команды /start и /help
+        
         return responseMessage;
     }
 
@@ -64,4 +86,41 @@ public class MessageHandlerImpl implements MessageHandler {
         return forecastFormatter.formatTodayForecast(todayForecasts);
     }
 
+    /**
+     * Обрабатывает запрос на получение прогноза погоды на каждые 4 часа этой недели и возвращает ответ в виде строки
+     *
+     * @param placeName название места
+     * @return ответ в виде строки
+     */
+    private String handleWeekForecasts(String placeName) {
+        List<WeatherForecast> todayForecasts = weatherService.getForecast(placeName, 7);
+        if (todayForecasts == null) {
+            return BotText.NOT_FOUND.text;
+        }
+        return forecastFormatter.formatWeekForecast(todayForecasts);
+    }
+
+    /**
+     * Возвращает сводку команд, доступную пользователю
+     *
+     * @return существующие команды
+     */
+    private String getHelpMessage() {
+        return """
+                Вы зашли в меню помощи. Для вас доступны следующие команды:
+                /start - запустить бота
+                /help - меню помощи
+                /info <название населенного пункта> - вывести прогноз погоды для <населенного пункта>
+                /info_week <название населенного пункта> - вывести прогноз погоды для <название населенного пункта> на неделю вперёд""";
+    }
+
+    private String startBot() {
+        return """
+               Здравствуйте! Я бот для просмотра прогноза погоды. Доступны следующие команды: \s
+               /start_ - запустить бота
+               /help_ - меню помощи
+               /info <название населенного пункта>_ - вывести прогноз погоды для <населенного пункта>
+               /info_week <название населенного пункта>_ - вывести прогноз погоды для <название населенного пункта> на неделю вперёд
+               """;
+    }
 }
