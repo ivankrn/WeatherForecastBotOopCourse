@@ -21,6 +21,12 @@ public class MessageHandlerImpl implements MessageHandler {
      */
     private final WeatherForecastFormatter forecastFormatter;
 
+    /**
+     * Создает экземпляр MessageHandlerImpl, используя переданные аргументы
+     *
+     * @param weatherService сервис для получения прогнозов погоды
+     * @param forecastFormatter форматировщик прогноза погоды в удобочитаемый вид
+     */
     public MessageHandlerImpl(WeatherForecastService weatherService,
                               WeatherForecastFormatter forecastFormatter) {
         this.weatherService = weatherService;

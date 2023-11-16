@@ -35,6 +35,12 @@ public class WeatherForecastServiceImpl implements WeatherForecastService {
             .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
             .build();
 
+    /**
+     * Создает экземпляр WeatherForecastServiceImpl, используя переданные аргументы
+     *
+     * @param geocodingService сервис для поиска мест
+     * @param weatherForecastsDeserializer десериализатор ответа сервера прогнозов погоды
+     */
     @Autowired
     public WeatherForecastServiceImpl(GeocodingService geocodingService, WeatherForecastsDeserializer weatherForecastsDeserializer) {
         this.geocodingService = geocodingService;
