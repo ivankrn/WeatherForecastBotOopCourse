@@ -37,8 +37,8 @@ public class MessageHandlerImpl implements MessageHandler {
             String command = receivedText[0];
 
             switch (command) {
-                case "/start" -> responseMessage.setText(startBot());
-                case "/help" -> responseMessage.setText(getHelpMessage());
+                case "/start" -> responseMessage.setText(BotText.START_COMMAND.text);
+                case "/help" -> responseMessage.setText(BotText.HELP_COMMAND.text);
                 case "/info" -> {
                     if (receivedText.length < 2) {
                         responseMessage.setText(BotText.WRONG_COMMAND_SYNTAX.text);
@@ -88,29 +88,5 @@ public class MessageHandlerImpl implements MessageHandler {
             return BotText.NOT_FOUND.text;
         }
         return forecastFormatter.formatWeekForecast(todayForecasts);
-    }
-
-    /**
-     * Возвращает сводку команд, доступную пользователю
-     *
-     * @return существующие команды
-     */
-    private String getHelpMessage() {
-        return """
-                Вы зашли в меню помощи. Для вас доступны следующие команды:
-                /start - запустить бота
-                /help - меню помощи
-                /info <название населенного пункта> - вывести прогноз погоды для <населенного пункта>
-                /info_week <название населенного пункта> - вывести прогноз погоды для <название населенного пункта> на неделю вперёд""";
-    }
-
-    private String startBot() {
-        return """
-               Здравствуйте! Я бот для просмотра прогноза погоды. Доступны следующие команды:
-               /start - запустить бота
-               /help - меню помощи
-               /info <название населенного пункта> - вывести прогноз погоды для <населенного пункта>
-               /info_week <название населенного пункта> - вывести прогноз погоды для <название населенного пункта> на неделю вперёд
-               """;
     }
 }
