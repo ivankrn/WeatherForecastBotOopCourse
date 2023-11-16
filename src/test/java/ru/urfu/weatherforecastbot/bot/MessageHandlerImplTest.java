@@ -221,5 +221,54 @@ class MessageHandlerImplTest {
         assertEquals(typicalUserChatId, Long.parseLong(replyToTypicalUser.getChatId()));
         assertEquals(expectedMoscowForecast, replyToTypicalUser.getText());
     }
-    // TODO: 05.11.2023 Добавить тесты для прогноза на неделю, команд /start и /help
+
+    @Test
+    @DisplayName("При запросе прогноза погоды на неделю вперед в определенном месте ответное " +
+            "сообщение должно содержать прогноз погоды на неделю вперед в том же самом определенном месте")
+    void givenPlace_whenWeekForecast_thenReturnFormattedWeekForecast() {
+        LocalDateTime now = LocalDateTime.now();
+        int days = 7;
+        List<WeatherForecast> weekForecast = new ArrayList<>();
+        for (int day = 0; day < days; day++) {
+            for (int hour = 0; hour < 24; hour += 4) {
+                weekForecast.add(
+                        new WeatherForecast(now.plusDays(day).withHour(hour), 0, 0));
+            }
+        }
+        Mockito.when(weatherService.getForecast("Екатеринбург", 7))
+                .thenReturn(weekForecast);
+        Mockito.when(forecastFormatter.formatWeekForecast(weekForecast))
+                .thenReturn("Прогноз погоды на неделю вперед: ...");
+
+        userMessage.setText("/info_week Екатеринбург");
+
+        String expectedTodayForecast = forecastFormatter.formatWeekForecast(weekForecast);
+
+        SendMessage responseMessage = messageHandler.handle(userMessage);
+
+        assertEquals(userMessage.getChatId(), Long.parseLong(responseMessage.getChatId()));
+        assertEquals(expectedTodayForecast, responseMessage.getText());
+    }
+
+    @Test
+    @DisplayName("При вводе команды \"/start\" пользователю должно отобразиться приветствие")
+    void givenStartCommand_thenReturnHelloMessage() {
+        userMessage.setText("/start");
+
+        SendMessage responseMessage = messageHandler.handle(userMessage);
+
+        assertEquals(userMessage.getChatId(), Long.parseLong(responseMessage.getChatId()));
+        assertEquals(BotText.START_COMMAND.text, responseMessage.getText());
+    }
+
+    @Test
+    @DisplayName("При вводе команды \"/help\" пользователю должно отобразиться сообщение помощи")
+    void givenHelpCommand_thenReturnHelpMessage() {
+        userMessage.setText("/help");
+
+        SendMessage responseMessage = messageHandler.handle(userMessage);
+
+        assertEquals(userMessage.getChatId(), Long.parseLong(responseMessage.getChatId()));
+        assertEquals(BotText.HELP_COMMAND.text, responseMessage.getText());
+    }
 }

@@ -19,6 +19,9 @@ public class WeatherForecastFormatterImpl implements WeatherForecastFormatter {
      * Форматировщик даты и времени
      */
     private final DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("HH-mm");
+    /**
+     * Форматировщик даты
+     */
     private final DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy");
 
     @Override
