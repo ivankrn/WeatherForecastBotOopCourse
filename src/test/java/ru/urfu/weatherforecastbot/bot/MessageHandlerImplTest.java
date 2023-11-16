@@ -242,12 +242,12 @@ class MessageHandlerImplTest {
 
         userMessage.setText("/info_week Екатеринбург");
 
-        String expectedTodayForecast = forecastFormatter.formatWeekForecast(weekForecast);
+        String expectedWeekForecast = forecastFormatter.formatWeekForecast(weekForecast);
 
         SendMessage responseMessage = messageHandler.handle(userMessage);
 
         assertEquals(userMessage.getChatId(), Long.parseLong(responseMessage.getChatId()));
-        assertEquals(expectedTodayForecast, responseMessage.getText());
+        assertEquals(expectedWeekForecast, responseMessage.getText());
     }
 
     @Test
