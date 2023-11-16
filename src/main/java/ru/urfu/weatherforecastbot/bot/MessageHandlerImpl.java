@@ -35,18 +35,30 @@ public class MessageHandlerImpl implements MessageHandler {
         if (message.hasText()) {
             String[] receivedText = message.getText().split(" ");
             String command = receivedText[0];
-            if (command.equals("/info")) {
-                if (receivedText.length < 2) {
-                    responseMessage.setText(BotText.WRONG_COMMAND_SYNTAX.text);
-                } else {
-                    String place = receivedText[1];
-                    responseMessage.setText(handleTodayForecasts(place));
+
+            switch (command) {
+                case "/start" -> responseMessage.setText(BotText.START_COMMAND.text);
+                case "/help" -> responseMessage.setText(BotText.HELP_COMMAND.text);
+                case "/info" -> {
+                    if (receivedText.length < 2) {
+                        responseMessage.setText(BotText.WRONG_COMMAND_SYNTAX.text);
+                    } else {
+                        String place = receivedText[1];
+                        responseMessage.setText(handleTodayForecasts(place));
+                    }
                 }
-            } else {
-                responseMessage.setText(BotText.UNKNOWN_COMMAND.text);
+                case "/info_week" -> {
+                    if (receivedText.length < 2) {
+                        responseMessage.setText(BotText.WRONG_COMMAND_SYNTAX.text);
+                    } else {
+                        String place = receivedText[1];
+                        responseMessage.setText(handleWeekForecasts(place));
+                    }
+                }
+                default -> responseMessage.setText(BotText.UNKNOWN_COMMAND.text);
             }
         }
-        // TODO: 05.11.2023 Добавить отправку прогноза на неделю, команды /start и /help
+        
         return responseMessage;
     }
 
@@ -64,4 +76,17 @@ public class MessageHandlerImpl implements MessageHandler {
         return forecastFormatter.formatTodayForecast(todayForecasts);
     }
 
+    /**
+     * Обрабатывает запрос на получение прогноза погоды на каждые 4 часа этой недели и возвращает ответ в виде строки
+     *
+     * @param placeName название места
+     * @return ответ в виде строки
+     */
+    private String handleWeekForecasts(String placeName) {
+        List<WeatherForecast> todayForecasts = weatherService.getForecast(placeName, 7);
+        if (todayForecasts == null) {
+            return BotText.NOT_FOUND.text;
+        }
+        return forecastFormatter.formatWeekForecast(todayForecasts);
+    }
 }
