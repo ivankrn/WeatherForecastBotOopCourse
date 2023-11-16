@@ -27,6 +27,11 @@ public class WeatherForecastFormatterImpl implements WeatherForecastFormatter {
     }
 
     @Override
+    public String formatTomorrowForecast(List<WeatherForecast> forecasts) {
+        return "\uD83C\uDF21️ Прогноз погоды на завтра:\n\n" + formatWeatherForecasts(forecasts);
+    }
+
+    @Override
     public String formatWeekForecast(List<WeatherForecast> forecasts) {
         Map<LocalDate, List<WeatherForecast>> forecastsByDate = forecasts.stream()
                 .collect(Collectors.groupingBy(weatherForecast -> weatherForecast.dateTime().toLocalDate()));
