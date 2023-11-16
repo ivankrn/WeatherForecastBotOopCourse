@@ -21,7 +21,7 @@ public interface WeatherForecastFormatter {
      * Форматирует прогнозы погоды на неделю вперед каждые 4 часа
      *
      * @param forecasts список прогнозов погоды на неделю вперед
-     * @return прогнозы погоды на сегодня в виде строки
+     * @return прогнозы погоды на неделю вперед в виде строки
      */
     String formatWeekForecast(List<WeatherForecast> forecasts);
 }

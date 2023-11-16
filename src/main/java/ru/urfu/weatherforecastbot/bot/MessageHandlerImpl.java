@@ -20,10 +20,6 @@ public class MessageHandlerImpl implements MessageHandler {
      * Форматировщик прогноза погоды в удобочитаемый вид
      */
     private final WeatherForecastFormatter forecastFormatter;
-    /**
-     * Флаг, указываюший на то, что бот запущен
-     */
-    private boolean botStarted = false;
 
     public MessageHandlerImpl(WeatherForecastService weatherService,
                               WeatherForecastFormatter forecastFormatter) {
@@ -40,32 +36,26 @@ public class MessageHandlerImpl implements MessageHandler {
             String[] receivedText = message.getText().split(" ");
             String command = receivedText[0];
 
-            if ("/start".equals(command)) {
-                botStarted = true;
-                responseMessage.setText(startBot());
-            } else if (!botStarted) {
-                responseMessage.setText("Пожалуйста, используйте /start для запуска бота.");
-            } else {
-                switch (command) {
-                    case "/info" -> {
-                        if (receivedText.length < 2) {
-                            responseMessage.setText(BotText.WRONG_COMMAND_SYNTAX.text);
-                        } else {
-                            String place = receivedText[1];
-                            responseMessage.setText(handleTodayForecasts(place));
-                        }
+            switch (command) {
+                case "/start" -> responseMessage.setText(startBot());
+                case "/help" -> responseMessage.setText(getHelpMessage());
+                case "/info" -> {
+                    if (receivedText.length < 2) {
+                        responseMessage.setText(BotText.WRONG_COMMAND_SYNTAX.text);
+                    } else {
+                        String place = receivedText[1];
+                        responseMessage.setText(handleTodayForecasts(place));
                     }
-                    case "/info_week" -> {
-                        if (receivedText.length < 2) {
-                            responseMessage.setText(BotText.WRONG_COMMAND_SYNTAX.text);
-                        } else {
-                            String place = receivedText[1];
-                            responseMessage.setText(handleWeekForecasts(place));
-                        }
-                    }
-                    case "/help" -> responseMessage.setText(getHelpMessage());
-                    default -> responseMessage.setText(BotText.UNKNOWN_COMMAND.text);
                 }
+                case "/info_week" -> {
+                    if (receivedText.length < 2) {
+                        responseMessage.setText(BotText.WRONG_COMMAND_SYNTAX.text);
+                    } else {
+                        String place = receivedText[1];
+                        responseMessage.setText(handleWeekForecasts(place));
+                    }
+                }
+                default -> responseMessage.setText(BotText.UNKNOWN_COMMAND.text);
             }
         }
         
@@ -116,11 +106,11 @@ public class MessageHandlerImpl implements MessageHandler {
 
     private String startBot() {
         return """
-               Здравствуйте! Я бот для просмотра прогноза погоды. Доступны следующие команды: \s
-               /start_ - запустить бота
-               /help_ - меню помощи
-               /info <название населенного пункта>_ - вывести прогноз погоды для <населенного пункта>
-               /info_week <название населенного пункта>_ - вывести прогноз погоды для <название населенного пункта> на неделю вперёд
+               Здравствуйте! Я бот для просмотра прогноза погоды. Доступны следующие команды:
+               /start - запустить бота
+               /help - меню помощи
+               /info <название населенного пункта> - вывести прогноз погоды для <населенного пункта>
+               /info_week <название населенного пункта> - вывести прогноз погоды для <название населенного пункта> на неделю вперёд
                """;
     }
 }
