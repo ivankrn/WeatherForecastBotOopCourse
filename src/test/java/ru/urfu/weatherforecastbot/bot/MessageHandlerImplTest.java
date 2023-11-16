@@ -5,7 +5,6 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Chat;
@@ -19,6 +18,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.Mockito.when;
 
 /**
  * Тесты обработчика сообщений
@@ -69,8 +69,8 @@ class MessageHandlerImplTest {
             todayForecast.add(
                     new WeatherForecast(today.withHour(hour), 0, 0));
         }
-        Mockito.when(weatherService.getForecast("Екатеринбург", 1)).thenReturn(todayForecast);
-        Mockito.when(forecastFormatter.formatTodayForecast(todayForecast))
+        when(weatherService.getForecast("Екатеринбург", 1)).thenReturn(todayForecast);
+        when(forecastFormatter.formatTodayForecast(todayForecast))
                 .thenReturn("Прогноз погоды на сегодня: ...");
         userMessage.setText("/info Екатеринбург");
         String expectedTodayForecast = forecastFormatter.formatTodayForecast(todayForecast);
@@ -98,7 +98,7 @@ class MessageHandlerImplTest {
             "предупреждение о том, что место не найдено")
     void givenNotFoundPlace_whenTodayForecast_thenReturnNotFound() {
         userMessage.setText("/info там_где_нас_нет");
-        Mockito.when(weatherService.getForecast("там_где_нас_нет", 1)).thenReturn(null);
+        when(weatherService.getForecast("там_где_нас_нет", 1)).thenReturn(null);
 
         SendMessage responseMessage = messageHandler.handle(userMessage);
 
@@ -144,13 +144,13 @@ class MessageHandlerImplTest {
             ekaterinburgTodayForecast.add(
                     new WeatherForecast(today.withHour(hour), 0, 0));
         }
-        Mockito.when(weatherService.getForecast("Москва", 1))
+        when(weatherService.getForecast("Москва", 1))
                 .thenReturn(moscowTodayForecast);
-        Mockito.when(weatherService.getForecast("Екатеринбург", 1))
+        when(weatherService.getForecast("Екатеринбург", 1))
                 .thenReturn(ekaterinburgTodayForecast);
-        Mockito.when(forecastFormatter.formatTodayForecast(moscowTodayForecast))
+        when(forecastFormatter.formatTodayForecast(moscowTodayForecast))
                 .thenReturn("Прогноз погоды на сегодня (Москва): ...");
-        Mockito.when(forecastFormatter.formatTodayForecast(ekaterinburgTodayForecast))
+        when(forecastFormatter.formatTodayForecast(ekaterinburgTodayForecast))
                 .thenReturn("Прогноз погоды на сегодня (Екатеринбург): ...");
         String expectedMoscowForecast = forecastFormatter.formatTodayForecast(moscowTodayForecast);
         String expectedEkaterinburgForecast = forecastFormatter.formatTodayForecast(ekaterinburgTodayForecast);
@@ -199,13 +199,13 @@ class MessageHandlerImplTest {
             marsTodayForecast.add(
                     new WeatherForecast(today.withHour(hour), -60, -60));
         }
-        Mockito.when(weatherService.getForecast("Марс", 1))
+        when(weatherService.getForecast("Марс", 1))
                 .thenReturn(marsTodayForecast);
-        Mockito.when(weatherService.getForecast("Москва", 1))
+        when(weatherService.getForecast("Москва", 1))
                 .thenReturn(moscowTodayForecast);
-        Mockito.when(forecastFormatter.formatTodayForecast(marsTodayForecast))
+        when(forecastFormatter.formatTodayForecast(marsTodayForecast))
                 .thenReturn("Прогноз погоды на сегодня (Марс): ...");
-        Mockito.when(forecastFormatter.formatTodayForecast(moscowTodayForecast))
+        when(forecastFormatter.formatTodayForecast(moscowTodayForecast))
                 .thenReturn("Прогноз погоды на сегодня (Москва): ...");
         String expectedMarsForecast = forecastFormatter.formatTodayForecast(marsTodayForecast);
         String expectedMoscowForecast = forecastFormatter.formatTodayForecast(moscowTodayForecast);
@@ -235,9 +235,9 @@ class MessageHandlerImplTest {
                         new WeatherForecast(now.plusDays(day).withHour(hour), 0, 0));
             }
         }
-        Mockito.when(weatherService.getForecast("Екатеринбург", 7))
+        when(weatherService.getForecast("Екатеринбург", 7))
                 .thenReturn(weekForecast);
-        Mockito.when(forecastFormatter.formatWeekForecast(weekForecast))
+        when(forecastFormatter.formatWeekForecast(weekForecast))
                 .thenReturn("Прогноз погоды на неделю вперед: ...");
 
         userMessage.setText("/info_week Екатеринбург");

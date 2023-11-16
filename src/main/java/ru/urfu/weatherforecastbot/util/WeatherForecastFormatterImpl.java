@@ -5,7 +5,6 @@ import ru.urfu.weatherforecastbot.model.WeatherForecast;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.time.temporal.TemporalAccessor;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -16,13 +15,13 @@ import java.util.stream.Collectors;
 public class WeatherForecastFormatterImpl implements WeatherForecastFormatter {
 
     /**
-     * Форматировщик даты и времени
+     * Форматировщик времени для форматирования по часам
      */
-    private final DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("HH-mm");
+    private final DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("HH-mm");
     /**
-     * Форматировщик даты
+     * Форматировщик даты для форматирования на неделю
      */
-    private final DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy");
+    private final DateTimeFormatter weekDateFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy");
 
     @Override
     public String formatTodayForecast(List<WeatherForecast> forecasts) {
@@ -42,7 +41,7 @@ public class WeatherForecastFormatterImpl implements WeatherForecastFormatter {
         StringBuilder sb = new StringBuilder("\uD83C\uDF21️ Прогноз погоды на неделю вперед:");
 
         for (LocalDate date : sortedDates) {
-            sb.append("\n\n").append(dateFormatter.format(date)).append(":\n");
+            sb.append("\n\n").append(weekDateFormatter.format(date)).append(":\n");
 
             List<WeatherForecast> dateForecasts = forecastsByDate.get(date);
             String formattedForecasts = formatWeatherForecasts(dateForecasts.stream()
@@ -63,7 +62,7 @@ public class WeatherForecastFormatterImpl implements WeatherForecastFormatter {
      */
     private String formatWeatherForecast(WeatherForecast forecast) {
         StringBuilder sb = new StringBuilder();
-        sb.append(dateTimeFormatter.format(forecast.dateTime())).append(": ");
+        sb.append(timeFormatter.format(forecast.dateTime())).append(": ");
         sb.append(forecast.temperature()).append("°C")
                 .append(" (по ощущению ").append(forecast.feelsLikeTemperature()).append("°C)");
         return sb.toString();

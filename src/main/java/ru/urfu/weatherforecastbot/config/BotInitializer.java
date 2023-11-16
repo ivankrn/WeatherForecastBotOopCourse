@@ -26,6 +26,11 @@ public class BotInitializer {
      */
     private final Logger logger = LoggerFactory.getLogger(BotInitializer.class);
 
+    /**
+     * Создаёт экземпляр BotInitializer с указанным ботом
+     *
+     * @param bot бот прогноза погоды
+     */
     @Autowired
     public BotInitializer(WeatherForecastBot bot) {
         this.bot = bot;

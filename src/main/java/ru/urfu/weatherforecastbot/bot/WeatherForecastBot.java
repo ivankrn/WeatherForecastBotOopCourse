@@ -30,6 +30,12 @@ public class WeatherForecastBot extends TelegramLongPollingBot {
      */
     private final Logger logger = LoggerFactory.getLogger(WeatherForecastBot.class);
 
+    /**
+     * Создает экземпляр WeatherForecastBot, используя переданные аргументы
+     *
+     * @param botConfig конфигурация бота
+     * @param messageHandler обработчик сообщений
+     */
     @Autowired
     public WeatherForecastBot(BotConfig botConfig, MessageHandler messageHandler) {
         super(botConfig.getToken());
