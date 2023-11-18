@@ -72,6 +72,7 @@ class WeatherForecastFormatterImplTest {
         assertEquals(expected, actual);
     }
 
+    // не уверен, что данный тест нужен (может ли в действительности сервис прислать прогноз, но при этом пустой?)
     @Test
     @DisplayName("При пустом прогнозе погоды на сегодня должен возвращать только заголовок прогноза погоды")
     void givenTodayEmptyForecast_whenFormatTodayForecast_thenReturnOnlyHeader() {
