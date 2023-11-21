@@ -1,23 +1,27 @@
 package ru.urfu.weatherforecastbot.config;
 
-import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.context.annotation.Configuration;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
 
 /**
  * Конфигурация бота
  */
-@Configuration
-@ConfigurationProperties(prefix = "bot")
+@Component
 public class BotConfig {
 
     /**
      * Название бота
      */
-    private String name;
+    private final String name;
     /**
      * Токен бота
      */
-    private String token;
+    private final String token;
+
+    public BotConfig(@Value("${bot.name}") String name, @Value("${bot.token}") String token) {
+        this.name = name;
+        this.token = token;
+    }
 
     /**
      * Возвращает название бота
@@ -29,15 +33,6 @@ public class BotConfig {
     }
 
     /**
-     * Устанавливает название бота
-     *
-     * @param name название бота
-     */
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    /**
      * Возвращает токен бота
      *
      * @return токен бота
@@ -46,12 +41,4 @@ public class BotConfig {
         return token;
     }
 
-    /**
-     * Устанавливает токен бота
-     *
-     * @param token токен бота
-     */
-    public void setToken(String token) {
-        this.token = token;
-    }
 }

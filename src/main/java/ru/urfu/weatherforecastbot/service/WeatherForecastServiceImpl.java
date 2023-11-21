@@ -26,7 +26,7 @@ public class WeatherForecastServiceImpl implements WeatherForecastService {
     /**
      * Десериализатор ответа сервера прогнозов погоды
      */
-    private final WeatherForecastsDeserializer weatherForecastsDeserializer;
+    private final WeatherForecastsDeserializer weatherForecastsDeserializer = new WeatherForecastsDeserializer();
     /**
      * Клиент для запросов API
      */
@@ -39,12 +39,10 @@ public class WeatherForecastServiceImpl implements WeatherForecastService {
      * Создает экземпляр WeatherForecastServiceImpl, используя переданные аргументы
      *
      * @param geocodingService сервис для поиска мест
-     * @param weatherForecastsDeserializer десериализатор ответа сервера прогнозов погоды
      */
     @Autowired
-    public WeatherForecastServiceImpl(GeocodingService geocodingService, WeatherForecastsDeserializer weatherForecastsDeserializer) {
+    public WeatherForecastServiceImpl(GeocodingService geocodingService) {
         this.geocodingService = geocodingService;
-        this.weatherForecastsDeserializer = weatherForecastsDeserializer;
     }
 
     @Override

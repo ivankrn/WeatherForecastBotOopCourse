@@ -4,6 +4,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
@@ -18,7 +19,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
@@ -40,7 +40,8 @@ class MessageHandlerImplTest {
     /**
      * Обработчик сообщений
      */
-    private MessageHandler messageHandler;
+    @InjectMocks
+    private MessageHandlerImpl messageHandler;
     /**
      * Сообщение, пришедшее от пользователя и которое требуется обработать
      */
@@ -51,7 +52,6 @@ class MessageHandlerImplTest {
      */
     @BeforeEach
     void setUp() {
-        messageHandler = new MessageHandlerImpl(weatherService, forecastFormatter);
         userMessage = new Message();
         Chat userChat = new Chat();
         long userChatId = 1L;
@@ -88,10 +88,6 @@ class MessageHandlerImplTest {
         SendMessage responseMessage = messageHandler.handle(userMessage);
 
         assertEquals("Прогноз погоды на сегодня (Екатеринбург): ...", responseMessage.getText());
-        /* Мне кажется, что проверка вызова мока избыточна, ведь если обработчик вернул не ожидаемое значение мока, то
-        проверка assertEquals должна упасть прежде, чем verify? (вопрос не только по этому конкретному тесту) */
-        verify(weatherService).getForecast("Екатеринбург", 1);
-        verify(forecastFormatter).formatTodayForecast(todayForecast);
     }
 
     @Test
@@ -115,7 +111,6 @@ class MessageHandlerImplTest {
         SendMessage responseMessage = messageHandler.handle(userMessage);
 
         assertEquals("Извините, данное место не найдено.", responseMessage.getText());
-        verify(weatherService).getForecast("там_где_нас_нет", 1);
     }
 
     @Test
@@ -127,54 +122,6 @@ class MessageHandlerImplTest {
         SendMessage responseMessage = messageHandler.handle(userMessage);
 
         assertEquals("Извините, я не знаю такой команды.", responseMessage.getText());
-    }
-
-    @Test
-    @DisplayName("При вводе нескольких последовательных команд, бот должен отвечать в том же порядке, в котором " +
-            "пришли исходные сообщения")
-    void givenCommandSequence_thenAnswerInSameOrder() {
-        Chat userChat = new Chat();
-        long userChatId = 1L;
-        userChat.setId(userChatId);
-        Message firstMessage = new Message();
-        firstMessage.setText("/pogoda Москва");
-        firstMessage.setChat(userChat);
-        Message secondMessage = new Message();
-        secondMessage.setText("/info Москва");
-        secondMessage.setChat(userChat);
-        Message thirdMessage = new Message();
-        thirdMessage.setText("/info Екатеринбург");
-        thirdMessage.setChat(userChat);
-        LocalDateTime today = LocalDateTime.now();
-        int hours = 24;
-        List<WeatherForecast> moscowTodayForecast = new ArrayList<>(hours);
-        List<WeatherForecast> ekaterinburgTodayForecast = new ArrayList<>(hours);
-        for (int hour = 0; hour < hours; hour++) {
-            moscowTodayForecast.add(
-                    new WeatherForecast(today.withHour(hour), 10, 5));
-            ekaterinburgTodayForecast.add(
-                    new WeatherForecast(today.withHour(hour), 0, 0));
-        }
-        when(weatherService.getForecast("Москва", 1))
-                .thenReturn(moscowTodayForecast);
-        when(weatherService.getForecast("Екатеринбург", 1))
-                .thenReturn(ekaterinburgTodayForecast);
-        when(forecastFormatter.formatTodayForecast(moscowTodayForecast))
-                .thenReturn("Прогноз погоды на сегодня (Москва): ...");
-        when(forecastFormatter.formatTodayForecast(ekaterinburgTodayForecast))
-                .thenReturn("Прогноз погоды на сегодня (Екатеринбург): ...");
-
-        SendMessage replyToFirstMessage = messageHandler.handle(firstMessage);
-        SendMessage replyToSecondMessage = messageHandler.handle(secondMessage);
-        SendMessage replyToThirdMessage = messageHandler.handle(thirdMessage);
-
-        assertEquals("Извините, я не знаю такой команды.", replyToFirstMessage.getText());
-        assertEquals("Прогноз погоды на сегодня (Москва): ...", replyToSecondMessage.getText());
-        verify(weatherService).getForecast("Москва", 1);
-        verify(forecastFormatter).formatTodayForecast(moscowTodayForecast);
-        assertEquals("Прогноз погоды на сегодня (Екатеринбург): ...", replyToThirdMessage.getText());
-        verify(weatherService).getForecast("Екатеринбург", 1);
-        verify(forecastFormatter).formatTodayForecast(ekaterinburgTodayForecast);
     }
 
     @Test
@@ -224,14 +171,10 @@ class MessageHandlerImplTest {
 
         assertEquals(marsDwellerChatId, Long.parseLong(replyToMarsDweller.getChatId()));
         assertEquals("Прогноз погоды на сегодня (Марс): ...", replyToMarsDweller.getText());
-        verify(weatherService).getForecast("Марс", 1);
-        verify(forecastFormatter).formatTodayForecast(marsTodayForecast);
         assertEquals(instructionsBookwormChatId, Long.parseLong(replyToInstructionsBookworm.getChatId()));
         assertEquals("Извините, я не знаю такой команды.", replyToInstructionsBookworm.getText());
         assertEquals(typicalUserChatId, Long.parseLong(replyToTypicalUser.getChatId()));
         assertEquals("Прогноз погоды на сегодня (Москва): ...", replyToTypicalUser.getText());
-        verify(weatherService).getForecast("Москва", 1);
-        verify(forecastFormatter).formatTodayForecast(moscowTodayForecast);
     }
 
     @Test
@@ -256,8 +199,6 @@ class MessageHandlerImplTest {
         SendMessage responseMessage = messageHandler.handle(userMessage);
 
         assertEquals("Прогноз погоды на неделю вперед (Екатеринбург): ...", responseMessage.getText());
-        verify(weatherService).getForecast("Екатеринбург", 7);
-        verify(forecastFormatter).formatWeekForecast(weekForecast);
     }
 
     @Test

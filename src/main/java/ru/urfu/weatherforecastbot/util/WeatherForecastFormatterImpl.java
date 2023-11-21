@@ -1,6 +1,5 @@
 package ru.urfu.weatherforecastbot.util;
 
-import org.springframework.stereotype.Component;
 import ru.urfu.weatherforecastbot.model.WeatherForecast;
 
 import java.time.LocalDate;
@@ -11,7 +10,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-@Component
 public class WeatherForecastFormatterImpl implements WeatherForecastFormatter {
 
     /**
@@ -25,9 +23,7 @@ public class WeatherForecastFormatterImpl implements WeatherForecastFormatter {
 
     @Override
     public String formatTodayForecast(List<WeatherForecast> forecasts) {
-        StringBuilder sb = new StringBuilder("\uD83C\uDF21️ Прогноз погоды на сегодня:\n\n");
-        sb.append(formatWeatherForecasts(forecasts));
-        return sb.toString();
+        return "\uD83C\uDF21️ Прогноз погоды на сегодня:\n\n" + formatWeatherForecasts(forecasts);
     }
 
     @Override
@@ -61,11 +57,10 @@ public class WeatherForecastFormatterImpl implements WeatherForecastFormatter {
      * @return прогноз погоды в виде строки
      */
     private String formatWeatherForecast(WeatherForecast forecast) {
-        StringBuilder sb = new StringBuilder();
-        sb.append(timeFormatter.format(forecast.dateTime())).append(": ");
-        sb.append(forecast.temperature()).append("°C")
-                .append(" (по ощущению ").append(forecast.feelsLikeTemperature()).append("°C)");
-        return sb.toString();
+        String sb = timeFormatter.format(forecast.dateTime()) + ": " +
+                forecast.temperature() + "°C" +
+                " (по ощущению " + forecast.feelsLikeTemperature() + "°C)";
+        return sb;
     }
 
     /**

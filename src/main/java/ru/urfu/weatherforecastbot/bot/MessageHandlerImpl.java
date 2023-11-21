@@ -1,11 +1,13 @@
 package ru.urfu.weatherforecastbot.bot;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Message;
 import ru.urfu.weatherforecastbot.model.WeatherForecast;
 import ru.urfu.weatherforecastbot.service.WeatherForecastService;
 import ru.urfu.weatherforecastbot.util.WeatherForecastFormatter;
+import ru.urfu.weatherforecastbot.util.WeatherForecastFormatterImpl;
 
 import java.util.List;
 
@@ -22,13 +24,24 @@ public class MessageHandlerImpl implements MessageHandler {
     private final WeatherForecastFormatter forecastFormatter;
 
     /**
+     * Создает экземпляр MessageHandlerImpl, используя в качестве {@link MessageHandlerImpl#forecastFormatter
+     * forecastFormatter} {@link WeatherForecastFormatterImpl}
+     *
+     * @param weatherService сервис для получения прогнозов погоды
+     */
+    @Autowired
+    public MessageHandlerImpl(WeatherForecastService weatherService) {
+        this.weatherService = weatherService;
+        forecastFormatter = new WeatherForecastFormatterImpl();
+    }
+
+    /**
      * Создает экземпляр MessageHandlerImpl, используя переданные аргументы
      *
      * @param weatherService сервис для получения прогнозов погоды
      * @param forecastFormatter форматировщик прогноза погоды в удобочитаемый вид
      */
-    public MessageHandlerImpl(WeatherForecastService weatherService,
-                              WeatherForecastFormatter forecastFormatter) {
+    public MessageHandlerImpl(WeatherForecastService weatherService, WeatherForecastFormatter forecastFormatter) {
         this.weatherService = weatherService;
         this.forecastFormatter = forecastFormatter;
     }
@@ -43,11 +56,11 @@ public class MessageHandlerImpl implements MessageHandler {
             String command = receivedText[0];
 
             switch (command) {
-                case "/start" -> responseMessage.setText(BotText.START_COMMAND.text);
-                case "/help" -> responseMessage.setText(BotText.HELP_COMMAND.text);
+                case "/start" -> responseMessage.setText(BotText.START_COMMAND.getText());
+                case "/help" -> responseMessage.setText(BotText.HELP_COMMAND.getText());
                 case "/info" -> {
                     if (receivedText.length < 2) {
-                        responseMessage.setText(BotText.WRONG_COMMAND_SYNTAX.text);
+                        responseMessage.setText(BotText.WRONG_COMMAND_SYNTAX.getText());
                     } else {
                         String place = receivedText[1];
                         responseMessage.setText(handleTodayForecasts(place));
@@ -55,13 +68,13 @@ public class MessageHandlerImpl implements MessageHandler {
                 }
                 case "/info_week" -> {
                     if (receivedText.length < 2) {
-                        responseMessage.setText(BotText.WRONG_COMMAND_SYNTAX.text);
+                        responseMessage.setText(BotText.WRONG_COMMAND_SYNTAX.getText());
                     } else {
                         String place = receivedText[1];
                         responseMessage.setText(handleWeekForecasts(place));
                     }
                 }
-                default -> responseMessage.setText(BotText.UNKNOWN_COMMAND.text);
+                default -> responseMessage.setText(BotText.UNKNOWN_COMMAND.getText());
             }
         }
         
@@ -77,7 +90,7 @@ public class MessageHandlerImpl implements MessageHandler {
     private String handleTodayForecasts(String placeName) {
         List<WeatherForecast> todayForecasts = weatherService.getForecast(placeName, 1);
         if (todayForecasts == null) {
-            return BotText.NOT_FOUND.text;
+            return BotText.NOT_FOUND.getText();
         }
         return forecastFormatter.formatTodayForecast(todayForecasts);
     }
@@ -91,7 +104,7 @@ public class MessageHandlerImpl implements MessageHandler {
     private String handleWeekForecasts(String placeName) {
         List<WeatherForecast> todayForecasts = weatherService.getForecast(placeName, 7);
         if (todayForecasts == null) {
-            return BotText.NOT_FOUND.text;
+            return BotText.NOT_FOUND.getText();
         }
         return forecastFormatter.formatWeekForecast(todayForecasts);
     }
