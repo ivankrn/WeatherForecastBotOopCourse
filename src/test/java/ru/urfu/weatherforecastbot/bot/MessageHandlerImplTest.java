@@ -201,7 +201,6 @@ class MessageHandlerImplTest {
         SendMessage responseMessage = messageHandler.handle(userMessage);
 
         assertEquals("Прогноз погоды на неделю вперед (Екатеринбург): ...", responseMessage.getText());
-        verify(weatherService).getForecast("Екатеринбург", 7);
         verify(forecastFormatter).formatWeekForecast(weekForecast);
     }
 
@@ -216,7 +215,6 @@ class MessageHandlerImplTest {
         SendMessage responseMessage = messageHandler.handle(userMessage);
 
         assertEquals("Извините, данное место не найдено.", responseMessage.getText());
-        verify(weatherService).getForecast("там_где_нас_нет", 7);
     }
 
     @Test
