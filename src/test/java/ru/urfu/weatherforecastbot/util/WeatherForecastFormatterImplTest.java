@@ -74,4 +74,91 @@ class WeatherForecastFormatterImplTest {
         assertEquals(expected, actual);
     }
 
+    @Test
+    @DisplayName("При непустом прогнозе погоды на неделю вперед должен возвращать отформатированный прогноз погоды")
+    void givenWeekNotEmptyForecast_whenFormatWeekForecast_thenReturnFormattedWeekForecast() {
+        LocalDateTime today = LocalDateTime.of(2023, 11, 12, 0, 0);
+        int days = 7;
+        int hourInterval = 4;
+        List<WeatherForecast> weekForecast = new ArrayList<>();
+        for (int day = 0; day < days; day++) {
+            for (int hour = 0; hour < 24; hour += hourInterval) {
+                weekForecast.add(
+                        new WeatherForecast(today.plusDays(day).withHour(hour), 0, 0));
+            }
+        }
+        String expected = """
+                \uD83C\uDF21️ Прогноз погоды на неделю вперед:
+
+                12.11.2023:
+                00-00: 0.0°C (по ощущению 0.0°C)
+                04-00: 0.0°C (по ощущению 0.0°C)
+                08-00: 0.0°C (по ощущению 0.0°C)
+                12-00: 0.0°C (по ощущению 0.0°C)
+                16-00: 0.0°C (по ощущению 0.0°C)
+                20-00: 0.0°C (по ощущению 0.0°C)
+                
+                13.11.2023:
+                00-00: 0.0°C (по ощущению 0.0°C)
+                04-00: 0.0°C (по ощущению 0.0°C)
+                08-00: 0.0°C (по ощущению 0.0°C)
+                12-00: 0.0°C (по ощущению 0.0°C)
+                16-00: 0.0°C (по ощущению 0.0°C)
+                20-00: 0.0°C (по ощущению 0.0°C)
+                
+                14.11.2023:
+                00-00: 0.0°C (по ощущению 0.0°C)
+                04-00: 0.0°C (по ощущению 0.0°C)
+                08-00: 0.0°C (по ощущению 0.0°C)
+                12-00: 0.0°C (по ощущению 0.0°C)
+                16-00: 0.0°C (по ощущению 0.0°C)
+                20-00: 0.0°C (по ощущению 0.0°C)
+                
+                15.11.2023:
+                00-00: 0.0°C (по ощущению 0.0°C)
+                04-00: 0.0°C (по ощущению 0.0°C)
+                08-00: 0.0°C (по ощущению 0.0°C)
+                12-00: 0.0°C (по ощущению 0.0°C)
+                16-00: 0.0°C (по ощущению 0.0°C)
+                20-00: 0.0°C (по ощущению 0.0°C)
+                
+                16.11.2023:
+                00-00: 0.0°C (по ощущению 0.0°C)
+                04-00: 0.0°C (по ощущению 0.0°C)
+                08-00: 0.0°C (по ощущению 0.0°C)
+                12-00: 0.0°C (по ощущению 0.0°C)
+                16-00: 0.0°C (по ощущению 0.0°C)
+                20-00: 0.0°C (по ощущению 0.0°C)
+                
+                17.11.2023:
+                00-00: 0.0°C (по ощущению 0.0°C)
+                04-00: 0.0°C (по ощущению 0.0°C)
+                08-00: 0.0°C (по ощущению 0.0°C)
+                12-00: 0.0°C (по ощущению 0.0°C)
+                16-00: 0.0°C (по ощущению 0.0°C)
+                20-00: 0.0°C (по ощущению 0.0°C)
+                
+                18.11.2023:
+                00-00: 0.0°C (по ощущению 0.0°C)
+                04-00: 0.0°C (по ощущению 0.0°C)
+                08-00: 0.0°C (по ощущению 0.0°C)
+                12-00: 0.0°C (по ощущению 0.0°C)
+                16-00: 0.0°C (по ощущению 0.0°C)
+                20-00: 0.0°C (по ощущению 0.0°C)""";
+
+        String actual = formatter.formatWeekForecast(weekForecast);
+
+        assertEquals(expected, actual);
+    }
+
+    @Test
+    @DisplayName("При пустом прогнозе погоды на неделю вперед должен возвращать только заголовок прогноза погоды")
+    void givenWeekEmptyForecast_whenFormatWeekForecast_thenReturnOnlyHeader() {
+        List<WeatherForecast> weekForecast = List.of();
+        String expected = "\uD83C\uDF21️ Прогноз погоды на неделю вперед:";
+
+        String actual = formatter.formatWeekForecast(weekForecast);
+
+        assertEquals(expected, actual);
+    }
 }

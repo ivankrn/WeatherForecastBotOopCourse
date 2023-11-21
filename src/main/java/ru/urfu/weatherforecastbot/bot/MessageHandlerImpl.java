@@ -102,10 +102,10 @@ public class MessageHandlerImpl implements MessageHandler {
      * @return ответ в виде строки
      */
     private String handleWeekForecasts(String placeName) {
-        List<WeatherForecast> todayForecasts = weatherService.getForecast(placeName, 7);
-        if (todayForecasts == null) {
+        List<WeatherForecast> weekForecasts = weatherService.getForecast(placeName, 7);
+        if (weekForecasts == null) {
             return BotText.NOT_FOUND.getText();
         }
-        return forecastFormatter.formatWeekForecast(todayForecasts);
+        return forecastFormatter.formatWeekForecast(weekForecasts);
     }
 }

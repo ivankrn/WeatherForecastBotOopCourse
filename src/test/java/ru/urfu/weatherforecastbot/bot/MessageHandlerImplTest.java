@@ -19,6 +19,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
@@ -183,9 +184,10 @@ class MessageHandlerImplTest {
     void givenPlace_whenWeekForecast_thenReturnFormattedWeekForecast() {
         LocalDateTime now = LocalDateTime.now();
         int days = 7;
+        int hourInterval = 4;
         List<WeatherForecast> weekForecast = new ArrayList<>();
         for (int day = 0; day < days; day++) {
-            for (int hour = 0; hour < 24; hour += 4) {
+            for (int hour = 0; hour < 24; hour += hourInterval) {
                 weekForecast.add(
                         new WeatherForecast(now.plusDays(day).withHour(hour), 0, 0));
             }
@@ -199,6 +201,31 @@ class MessageHandlerImplTest {
         SendMessage responseMessage = messageHandler.handle(userMessage);
 
         assertEquals("Прогноз погоды на неделю вперед (Екатеринбург): ...", responseMessage.getText());
+        verify(forecastFormatter).formatWeekForecast(weekForecast);
+    }
+
+    @Test
+    @DisplayName("При запросе прогноза погоды на неделю вперед для ненайденного города " +
+            "должно возвращаться сообщение об ошибке")
+    void givenNonexistentPlace_whenWeekForecast_thenErrorMessage() {
+        userMessage.setText("/info_week там_где_нас_нет");
+
+        when(weatherService.getForecast("там_где_нас_нет", 7)).thenReturn(null);
+
+        SendMessage responseMessage = messageHandler.handle(userMessage);
+
+        assertEquals("Извините, данное место не найдено.", responseMessage.getText());
+    }
+
+    @Test
+    @DisplayName("При запросе прогноза погоды на неделю вперед без указания города " +
+            "должно возвращаться сообщение об ошибке")
+    void givenNoPlaceName_whenWeekForecast_thenReturnWrongCommand() {
+        userMessage.setText("/info_week");
+
+        SendMessage responseMessage = messageHandler.handle(userMessage);
+
+        assertEquals("Команда введена неверно, попробуйте ещё раз.", responseMessage.getText());
     }
 
     @Test
