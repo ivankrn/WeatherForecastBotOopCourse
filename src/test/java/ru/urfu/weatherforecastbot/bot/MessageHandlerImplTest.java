@@ -19,6 +19,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
@@ -199,6 +200,33 @@ class MessageHandlerImplTest {
         SendMessage responseMessage = messageHandler.handle(userMessage);
 
         assertEquals("Прогноз погоды на неделю вперед (Екатеринбург): ...", responseMessage.getText());
+        verify(weatherService).getForecast("Екатеринбург", 7);
+        verify(forecastFormatter).formatWeekForecast(weekForecast);
+    }
+
+    @Test
+    @DisplayName("При запросе прогноза погоды на неделю вперед для ненайденного города " +
+            "должно возвращаться сообщение об ошибке")
+    void givenNonexistentPlace_whenWeekForecast_thenErrorMessage() {
+        userMessage.setText("/info_week там_где_нас_нет");
+
+        when(weatherService.getForecast("там_где_нас_нет", 7)).thenReturn(null);
+
+        SendMessage responseMessage = messageHandler.handle(userMessage);
+
+        assertEquals("Извините, данное место не найдено.", responseMessage.getText());
+        verify(weatherService).getForecast("там_где_нас_нет", 7);
+    }
+
+    @Test
+    @DisplayName("При запросе прогноза погоды на неделю вперед без указания города " +
+            "должно возвращаться сообщение об ошибке")
+    void givenNoPlaceName_whenWeekForecast_thenReturnWrongCommand() {
+        userMessage.setText("/info_week");
+
+        SendMessage responseMessage = messageHandler.handle(userMessage);
+
+        assertEquals("Команда введена неверно, попробуйте ещё раз.", responseMessage.getText());
     }
 
     @Test
