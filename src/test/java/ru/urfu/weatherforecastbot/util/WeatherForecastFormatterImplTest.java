@@ -1,6 +1,5 @@
 package ru.urfu.weatherforecastbot.util;
 
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import ru.urfu.weatherforecastbot.model.WeatherForecast;
@@ -9,7 +8,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
  * Тесты форматировщика прогнозов погоды
@@ -19,15 +18,7 @@ class WeatherForecastFormatterImplTest {
     /**
      * Форматировщик прогноза погоды в удобочитаемый вид
      */
-    private WeatherForecastFormatter formatter;
-
-    /**
-     * Подготавливает окружение перед тестами
-     */
-    @BeforeEach
-    void setUp() {
-        formatter = new WeatherForecastFormatterImpl();
-    }
+    private final WeatherForecastFormatter formatter = new WeatherForecastFormatterImpl();
 
     @Test
     @DisplayName("При непустом прогнозе погоды на сегодня должен возвращать отформатированный прогноз погоды")
@@ -72,7 +63,6 @@ class WeatherForecastFormatterImplTest {
         assertEquals(expected, actual);
     }
 
-    // не уверен, что данный тест нужен (может ли в действительности сервис прислать прогноз, но при этом пустой?)
     @Test
     @DisplayName("При пустом прогнозе погоды на сегодня должен возвращать только заголовок прогноза погоды")
     void givenTodayEmptyForecast_whenFormatTodayForecast_thenReturnOnlyHeader() {

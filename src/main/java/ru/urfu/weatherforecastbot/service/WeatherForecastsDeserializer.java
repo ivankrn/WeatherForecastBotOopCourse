@@ -1,7 +1,6 @@
 package ru.urfu.weatherforecastbot.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import org.springframework.stereotype.Component;
 import ru.urfu.weatherforecastbot.model.WeatherForecast;
 
 import java.time.LocalDateTime;
@@ -12,7 +11,6 @@ import java.util.List;
 /**
  * Десериализатор ответа сервера в список прогнозов погоды
  */
-@Component
 public class WeatherForecastsDeserializer {
 
     /**
@@ -33,7 +31,7 @@ public class WeatherForecastsDeserializer {
     public List<WeatherForecast> parseJsonResponseToWeatherForecasts(JsonNode response) throws IllegalArgumentException {
         JsonNode hourlyData = response.get("hourly");
         if (hourlyData == null) {
-            throw new IllegalArgumentException(EXCEPTION_MESSAGE + response.asText());
+            throw new IllegalArgumentException(EXCEPTION_MESSAGE + response);
         }
         JsonNode times = hourlyData.get("time");
         JsonNode temperatures = hourlyData.get("temperature_2m");
@@ -41,7 +39,7 @@ public class WeatherForecastsDeserializer {
         if (times == null || temperatures == null || feelsLikeTemperatures == null
                 || times.size() != temperatures.size()
                 || times.size() != feelsLikeTemperatures.size()) {
-            throw new IllegalArgumentException(EXCEPTION_MESSAGE + response.asText());
+            throw new IllegalArgumentException(EXCEPTION_MESSAGE + response);
         }
         List<WeatherForecast> forecasts = new ArrayList<>(times.size());
         for (int i = 0; i < times.size(); i++) {

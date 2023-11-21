@@ -41,9 +41,18 @@ public enum BotText {
     /**
      * Текст ответа
      */
-    public final String text;
+    private final String text;
 
     BotText(String text) {
         this.text = text;
+    }
+
+    /**
+     * Возвращает текст ответа
+     *
+     * @return текст ответа
+     */
+    public String getText() {
+        return text;
     }
 }
