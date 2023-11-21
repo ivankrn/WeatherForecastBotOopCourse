@@ -74,4 +74,14 @@ class WeatherForecastFormatterImplTest {
         assertEquals(expected, actual);
     }
 
+    @Test
+    @DisplayName("При пустом прогнозе погоды на неделю вперед должен возвращать только заголовок прогноза погоды")
+    void givenWeekEmptyForecast_whenFormatWeekForecast_thenReturnOnlyHeader() {
+        List<WeatherForecast> weekForecast = List.of();
+        String expected = "\uD83C\uDF21️ Прогноз погоды на неделю вперед:";
+
+        String actual = formatter.formatWeekForecast(weekForecast);
+
+        assertEquals(expected, actual);
+    }
 }

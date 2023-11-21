@@ -184,9 +184,10 @@ class MessageHandlerImplTest {
     void givenPlace_whenWeekForecast_thenReturnFormattedWeekForecast() {
         LocalDateTime now = LocalDateTime.now();
         int days = 7;
+        int hourInterval = 4;
         List<WeatherForecast> weekForecast = new ArrayList<>();
         for (int day = 0; day < days; day++) {
-            for (int hour = 0; hour < 24; hour += 4) {
+            for (int hour = 0; hour < 24; hour += hourInterval) {
                 weekForecast.add(
                         new WeatherForecast(now.plusDays(day).withHour(hour), 0, 0));
             }
