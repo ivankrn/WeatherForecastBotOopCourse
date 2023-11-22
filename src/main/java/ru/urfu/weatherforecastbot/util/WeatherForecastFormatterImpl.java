@@ -34,6 +34,7 @@ public class WeatherForecastFormatterImpl implements WeatherForecastFormatter {
         List<LocalDate> sortedDates = new ArrayList<>(forecastsByDate.keySet());
         Collections.sort(sortedDates);
 
+        int hourInterval = 4;
         StringBuilder sb = new StringBuilder("\uD83C\uDF21️ Прогноз погоды на неделю вперед:");
 
         for (LocalDate date : sortedDates) {
@@ -41,7 +42,7 @@ public class WeatherForecastFormatterImpl implements WeatherForecastFormatter {
 
             List<WeatherForecast> dateForecasts = forecastsByDate.get(date);
             String formattedForecasts = formatWeatherForecasts(dateForecasts.stream()
-                    .filter(weatherForecast -> weatherForecast.dateTime().getHour() % 4 == 0)
+                    .filter(weatherForecast -> weatherForecast.dateTime().getHour() % hourInterval == 0)
                     .toList());
 
             sb.append(formattedForecasts);
