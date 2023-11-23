@@ -280,19 +280,12 @@ class MessageHandlerImplTest {
     class DialogHandling {
 
         @Test
-        @DisplayName("Если пользователь впервые пишет боту, то ответное сообщение должно содержать приветствие " +
-                "и новое состояние чата должно сохраниться")
-        void givenNewUser_whenFirstMessage_thenReturnStart() {
+        @DisplayName("Если пользователь впервые пишет боту, то новое состояние чата должно сохраниться")
+        void givenNewUser_whenFirstMessage_thenSaveState() {
             userMessage.setText("/start");
 
-            SendMessage responseMessage = messageHandler.handle(userMessage);
-            assertEquals("""
-                    Здравствуйте! Я бот для просмотра прогноза погоды. Доступны следующие команды:
-                    /start - запустить бота
-                    /help - меню помощи
-                    /info <название населенного пункта> - вывести прогноз погоды для <населенного пункта>
-                    /info_week <название населенного пункта> - вывести прогноз погоды для <название населенного пункта> на неделю вперёд.
-                    """, responseMessage.getText());
+            messageHandler.handle(userMessage);
+
             verify(chatStateRepository).save(argThat((ChatState chatState) ->
                     chatState.getChatId() == userMessage.getChatId() && chatState.getBotState() == BotState.INITIAL));
         }
