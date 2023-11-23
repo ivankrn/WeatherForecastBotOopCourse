@@ -18,6 +18,14 @@ public interface WeatherForecastFormatter {
     String formatTodayForecast(List<WeatherForecast> forecasts);
 
     /**
+     * Форматирует прогнозы погоды на завтра
+     *
+     * @param forecasts список прогнозов погоды на завтра
+     * @return прогнозы погоды на завтра в виде строки
+     */
+    String formatTomorrowForecast(List<WeatherForecast> forecasts);
+
+    /**
      * Форматирует прогнозы погоды на неделю вперед каждые 4 часа
      *
      * @param forecasts список прогнозов погоды на неделю вперед
