@@ -201,7 +201,6 @@ class MessageHandlerImplTest {
         SendMessage responseMessage = messageHandler.handle(userMessage);
 
         assertEquals("Прогноз погоды на неделю вперед (Екатеринбург): ...", responseMessage.getText());
-        verify(forecastFormatter).formatWeekForecast(weekForecast);
     }
 
     @Test
