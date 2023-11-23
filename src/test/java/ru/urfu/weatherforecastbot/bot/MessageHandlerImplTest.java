@@ -414,4 +414,24 @@ class MessageHandlerImplTest {
         assertEquals("Извините, я понимаю только текст.", responseMessage.getText());
     }
 
+    @Test
+    @DisplayName("При вводе команды \"Прогноз\", бот должен запросить ввод названия места")
+    void givenPlace_whenTodayForecast_thenReturnTodayForecastForThatPlace() {
+        userMessage.setText("Прогноз");
+
+        SendMessage responseMessage = messageHandler.handle(userMessage);
+
+        assertEquals("Введите название места", responseMessage.getText());
+    }
+
+    @Test
+    @DisplayName("При вводе неизвестной команды, ответ должен содержать предупреждение о том, что " +
+            "бот не знает такой команды")
+    void givenUnknownCommand_thenReturnUnknownCommand() {
+        userMessage.setText("some_unknown_command");
+
+        SendMessage responseMessage = messageHandler.handle(userMessage);
+
+        assertEquals("Извините, я не знаю такой команды.", responseMessage.getText());
+    }
 }

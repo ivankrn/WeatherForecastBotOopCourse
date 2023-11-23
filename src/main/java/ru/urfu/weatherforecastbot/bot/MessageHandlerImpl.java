@@ -5,7 +5,6 @@ import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMarkup;
-import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardButton;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardRow;
 import ru.urfu.weatherforecastbot.database.ChatStateRepository;
 import ru.urfu.weatherforecastbot.model.BotState;
@@ -33,7 +32,7 @@ public class MessageHandlerImpl implements MessageHandler {
      * Репозиторий состояний чатов
      */
     private final ChatStateRepository chatStateRepository;
-    
+
     /**
      * Создает экземпляр MessageHandlerImpl, используя в качестве {@link MessageHandlerImpl#forecastFormatter
      * forecastFormatter} {@link WeatherForecastFormatterImpl}
@@ -75,11 +74,12 @@ public class MessageHandlerImpl implements MessageHandler {
             if (message.getText().startsWith("/")) {
                 responseMessage.setText(handleCommand(message.getText()));
             } else {
-                responseMessage.setText(handleNonCommand(chatId, message.getText()));
+                return handleNonCommand(chatId, message.getText());
             }
         } else {
             responseMessage.setText(BotText.UNDERSTAND_ONLY_TEXT.getText());
         }
+
         return responseMessage;
     }
 
@@ -128,82 +128,114 @@ public class MessageHandlerImpl implements MessageHandler {
      * @param text текст, присланный пользователем
      * @return ответ в виде строки
      */
-    private String handleNonCommand(long chatId, String text) {
-        ChatState chatState = chatStateRepository.findById(chatId).orElseGet(() -> {
-            ChatState newChatState = new ChatState();
-            newChatState.setChatId(chatId);
-            newChatState.setBotState(BotState.INITIAL);
-            return chatStateRepository.save(newChatState);
-        });
-
+    private SendMessage handleNonCommand(long chatId, String text) {
+        ChatState chatState = chatStateRepository.findById(chatId).get();
         BotState currentBotState = chatState.getBotState();
-        SendMessage responseMessage = new SendMessage();
-        responseMessage.setChatId(chatId);
-        ReplyKeyboardMarkup keyboardMarkup = new ReplyKeyboardMarkup();
+
+        ReplyKeyboardMarkup replyKeyboardMarkup = new ReplyKeyboardMarkup();
+        replyKeyboardMarkup.setSelective(true);
+        replyKeyboardMarkup.setResizeKeyboard(true);
+        replyKeyboardMarkup.setOneTimeKeyboard(false);
+
         List<KeyboardRow> keyboard = new ArrayList<>();
-        KeyboardRow row = new KeyboardRow();
+        KeyboardRow keyboardFirstRow = new KeyboardRow();
 
-        switch (currentBotState) {
-            case INITIAL -> {
-                if (text.equalsIgnoreCase("Прогноз")) {
-                    chatState.setBotState(BotState.WAITING_FOR_PLACE_NAME);
-                    chatStateRepository.save(chatState);
-                    responseMessage.setText("Введите название места");
-                } else if (text.equalsIgnoreCase("Старт")) {
-                    responseMessage.setText(BotText.START_COMMAND.getText());
-                } else if (text.equalsIgnoreCase("Помощь")) {
-                    responseMessage.setText(BotText.HELP_COMMAND.getText());
-                } else if (text.equalsIgnoreCase("Отмена")) {
-                    chatState.setBotState(BotState.INITIAL);
-                    chatStateRepository.save(chatState);
+        SendMessage responseMessage = new SendMessage();
+
+        responseMessage.setChatId(chatId);
+
+        if (text.equalsIgnoreCase("Отмена")) {
+            chatState.setBotState(BotState.INITIAL);
+            chatStateRepository.save(chatState);
+            keyboardFirstRow.add("Прогноз");
+            keyboardFirstRow.add("Помощь");
+            keyboardFirstRow.add("Отмена");
+
+            keyboard.add(keyboardFirstRow);
+            replyKeyboardMarkup.setKeyboard(keyboard);
+            responseMessage.setReplyMarkup(replyKeyboardMarkup);
+            responseMessage.setText("Вы вернулись в основное меню");
+            return responseMessage;
+        } else {
+            switch (currentBotState) {
+                case INITIAL -> {
+                    keyboardFirstRow.add("Прогноз");
+                    keyboardFirstRow.add("Помощь");
+                    keyboardFirstRow.add("Отмена");
+
+                    keyboard.add(keyboardFirstRow);
+                    replyKeyboardMarkup.setKeyboard(keyboard);
+                    responseMessage.setReplyMarkup(replyKeyboardMarkup);
                     responseMessage.setText("Вы вернулись в основное меню");
-                } else {
+                    if (text.equalsIgnoreCase("Прогноз")) {
+                        chatState.setBotState(BotState.WAITING_FOR_PLACE_NAME);
+                        chatStateRepository.save(chatState);
+                        responseMessage.setText("Введите название места");
+                        return responseMessage;
+                    } else if (text.equalsIgnoreCase("Старт")) {
+                        responseMessage.setText(BotText.START_COMMAND.getText());
+                        return responseMessage;
+                    } else if (text.equalsIgnoreCase("Помощь")) {
+                        responseMessage.setText(BotText.HELP_COMMAND.getText());
+                        return responseMessage;
+                    } else {
+                        responseMessage.setText(BotText.UNKNOWN_COMMAND.getText());
+                        return responseMessage;
+                    }
+                }
+                case WAITING_FOR_PLACE_NAME -> {
+                    keyboardFirstRow.add("Сегодня");
+                    keyboardFirstRow.add("Завтра");
+                    keyboardFirstRow.add("Неделя");
+
+                    keyboard.add(keyboardFirstRow);
+                    replyKeyboardMarkup.setKeyboard(keyboard);
+                    responseMessage.setReplyMarkup(replyKeyboardMarkup);
+                    responseMessage.setText("Выберите временной период для просмотра (сегодня, завтра, неделя)");
+
+                    chatState.setPlaceName(text);
+                    chatState.setBotState(BotState.WAITING_FOR_TIME_PERIOD);
+                    chatStateRepository.save(chatState);
+                    return responseMessage;
+                }
+                case WAITING_FOR_TIME_PERIOD -> {
+                    keyboardFirstRow.add("Сегодня");
+                    keyboardFirstRow.add("Завтра");
+                    keyboardFirstRow.add("Неделя");
+
+                    keyboard.add(keyboardFirstRow);
+                    replyKeyboardMarkup.setKeyboard(keyboard);
+                    responseMessage.setReplyMarkup(replyKeyboardMarkup);
+
+                    if (text.equalsIgnoreCase("Сегодня")) {
+                        chatState.setBotState(BotState.INITIAL);
+                        chatStateRepository.save(chatState);
+                        responseMessage.setText(handleTodayForecasts(chatState.getPlaceName()));
+                        return responseMessage;
+                    } else if (text.equalsIgnoreCase("Завтра")) {
+                        chatState.setBotState(BotState.INITIAL);
+                        chatStateRepository.save(chatState);
+                        responseMessage.setText(handleTomorrowForecasts(chatState.getPlaceName()));
+                        return responseMessage;
+                    } else if (text.equalsIgnoreCase("Неделя")) {
+                        chatState.setBotState(BotState.INITIAL);
+                        chatStateRepository.save(chatState);
+                        responseMessage.setText(handleWeekForecasts(chatState.getPlaceName()));
+                        return responseMessage;
+                    } else {
+                        responseMessage.setText("Введите корректный временной период. " +
+                                "Допустимые значения: сегодня, завтра, неделя");
+                        return responseMessage;
+                    }
+                }
+                default -> {
                     responseMessage.setText(BotText.UNKNOWN_COMMAND.getText());
+                    return responseMessage;
                 }
-            }
-            case WAITING_FOR_PLACE_NAME -> {
-                chatState.setPlaceName(text);
-                chatState.setBotState(BotState.WAITING_FOR_TIME_PERIOD);
-                chatStateRepository.save(chatState);
-
-                row.add(new KeyboardButton("Сегодня"));
-                row.add(new KeyboardButton("Завтра"));
-                row.add(new KeyboardButton("Неделя"));
-                keyboard.add(row);
-                keyboardMarkup.setKeyboard(keyboard);
-                responseMessage.setReplyMarkup(keyboardMarkup);
-
-                responseMessage.setText("Выберите временной период для просмотра:");
-            }
-            case WAITING_FOR_TIME_PERIOD -> {
-                if (text.equalsIgnoreCase("Сегодня")) {
-                    chatState.setBotState(BotState.WAITING_FOR_TIME_PERIOD);
-                    chatStateRepository.save(chatState);
-                    responseMessage.setText(handleTodayForecasts(chatState.getPlaceName()));
-                } else if (text.equalsIgnoreCase("Завтра")) {
-                    chatState.setBotState(BotState.WAITING_FOR_TIME_PERIOD);
-                    chatStateRepository.save(chatState);
-                    responseMessage.setText(handleTomorrowForecasts(chatState.getPlaceName()));
-                } else if (text.equalsIgnoreCase("Неделя")) {
-                    chatState.setBotState(BotState.WAITING_FOR_TIME_PERIOD);
-                    chatStateRepository.save(chatState);
-                    responseMessage.setText(handleWeekForecasts(chatState.getPlaceName()));
-                } else if (text.equalsIgnoreCase("Отмена")) {
-                    chatState.setBotState(BotState.INITIAL);
-                    chatStateRepository.save(chatState);
-                    responseMessage.setText("Вы вернулись в основное меню");
-                } else {
-                    responseMessage.setText("Введите корректный временной период. Допустимые значения: сегодня, завтра, неделя");
-                }
-            }
-            default -> {
-                responseMessage.setText(BotText.UNKNOWN_COMMAND.getText());
             }
         }
-
-        return responseMessage.getText();
     }
-    
+
     /**
      * Обрабатывает запрос на получение прогноза погоды по часам на сегодня и возвращает ответ в виде строки
      *
