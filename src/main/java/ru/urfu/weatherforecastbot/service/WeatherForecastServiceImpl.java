@@ -61,7 +61,7 @@ public class WeatherForecastServiceImpl implements WeatherForecastService {
                         .build())
                 .retrieve()
                 .bodyToMono(JsonNode.class)
-                .map(weatherForecastsDeserializer::parseJsonResponseToWeatherForecasts)
+                .map(response -> weatherForecastsDeserializer.parseJsonResponseToWeatherForecasts(place.get(), response))
                 .block();
     }
 

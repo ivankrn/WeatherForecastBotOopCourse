@@ -62,7 +62,7 @@ public class MessageHandlerImpl implements MessageHandler {
                     if (receivedText.length < 2) {
                         responseMessage.setText(BotText.WRONG_COMMAND_SYNTAX.getText());
                     } else {
-                        String place = receivedText[1];
+                        String place = message.getText().substring(message.getText().indexOf(" ") + 1);
                         responseMessage.setText(handleTodayForecasts(place));
                     }
                 }
@@ -70,7 +70,7 @@ public class MessageHandlerImpl implements MessageHandler {
                     if (receivedText.length < 2) {
                         responseMessage.setText(BotText.WRONG_COMMAND_SYNTAX.getText());
                     } else {
-                        String place = receivedText[1];
+                        String place = message.getText().substring(message.getText().indexOf(" ") + 1);
                         responseMessage.setText(handleWeekForecasts(place));
                     }
                 }
