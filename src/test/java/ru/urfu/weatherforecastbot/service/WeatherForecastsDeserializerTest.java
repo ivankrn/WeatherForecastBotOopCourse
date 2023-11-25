@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import ru.urfu.weatherforecastbot.model.Place;
 import ru.urfu.weatherforecastbot.model.WeatherForecast;
 
 import java.time.LocalDateTime;
@@ -30,6 +31,7 @@ class WeatherForecastsDeserializerTest {
     @Test
     @DisplayName("При валидном json десериализация должна проходить успешно")
     void givenValidJson_whenDeserialize_thenReturnForecasts() throws JsonProcessingException {
+        Place place = new Place("Екатеринбург", 56.875, 60.625, "Asia/Yekaterinburg");
         String json = """
                 {
                   "latitude": 56.875,
@@ -77,37 +79,42 @@ class WeatherForecastsDeserializerTest {
         JsonNode jsonNode = mapper.readTree(json);
         List<WeatherForecast> expected = List.of(
                 new WeatherForecast(
+                        place,
                         LocalDateTime.of(2023, 11, 5, 0, 0),
                         -3.6,
                         -7.5
                 ),
                 new WeatherForecast(
+                        place,
                         LocalDateTime.of(2023, 11, 5, 1, 0),
                         -3.8,
                         -7.7
                 ),
                 new WeatherForecast(
+                        place,
                         LocalDateTime.of(2023, 11, 5, 2, 0),
                         -3.8,
                         -7.7
                 )
         );
-        assertEquals(expected, deserializer.parseJsonResponseToWeatherForecasts(jsonNode));
+        assertEquals(expected, deserializer.parseJsonResponseToWeatherForecasts(place, jsonNode));
     }
 
     @Test
     @DisplayName("При отсутствии необходимых полей должно быть выброшено исключение")
     void givenMalformedJson_whenDeserialize_thenExceptionThrown() throws JsonProcessingException {
+        Place place = new Place("Екатеринбург", 56.875, 60.625, "Asia/Yekaterinburg");
         String json = "{\"field\":\"value\"}";
         JsonNode jsonNode = mapper.readTree(json);
         String actualExceptionMessage = assertThrows(IllegalArgumentException.class,
-                () -> deserializer.parseJsonResponseToWeatherForecasts(jsonNode)).getMessage();
+                () -> deserializer.parseJsonResponseToWeatherForecasts(place, jsonNode)).getMessage();
         assertEquals("Wrong json provided: " + jsonNode, actualExceptionMessage);
     }
 
     @Test
     @DisplayName("При недостаточном количестве значений данных должно быть выброшено исключение")
     void givenNotEnoughData_whenDeserialize_thenExceptionThrown() throws JsonProcessingException {
+        Place place = new Place("Екатеринбург", 56.875, 60.625, "Asia/Yekaterinburg");
         String json = """
                 {
                   "latitude": 56.875,
@@ -152,7 +159,7 @@ class WeatherForecastsDeserializerTest {
                 }""";
         JsonNode jsonNode = mapper.readTree(json);
         String actualExceptionMessage = assertThrows(IllegalArgumentException.class,
-                () -> deserializer.parseJsonResponseToWeatherForecasts(jsonNode)).getMessage();
+                () -> deserializer.parseJsonResponseToWeatherForecasts(place, jsonNode)).getMessage();
         assertEquals("Wrong json provided: " + jsonNode, actualExceptionMessage);
     }
 }

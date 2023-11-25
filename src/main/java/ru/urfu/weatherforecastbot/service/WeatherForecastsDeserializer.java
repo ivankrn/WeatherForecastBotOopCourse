@@ -1,6 +1,7 @@
 package ru.urfu.weatherforecastbot.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import ru.urfu.weatherforecastbot.model.Place;
 import ru.urfu.weatherforecastbot.model.WeatherForecast;
 
 import java.time.LocalDateTime;
@@ -28,7 +29,8 @@ public class WeatherForecastsDeserializer {
      * @param response ответ сервера
      * @return список прогнозов погоды
      */
-    public List<WeatherForecast> parseJsonResponseToWeatherForecasts(JsonNode response) throws IllegalArgumentException {
+    public List<WeatherForecast> parseJsonResponseToWeatherForecasts(Place place, JsonNode response)
+            throws IllegalArgumentException {
         JsonNode hourlyData = response.get("hourly");
         if (hourlyData == null) {
             throw new IllegalArgumentException(EXCEPTION_MESSAGE + response);
@@ -44,6 +46,7 @@ public class WeatherForecastsDeserializer {
         List<WeatherForecast> forecasts = new ArrayList<>(times.size());
         for (int i = 0; i < times.size(); i++) {
             forecasts.add(new WeatherForecast(
+                    place,
                     LocalDateTime.parse(times.get(i).asText(), dateTimeFormatter),
                     temperatures.get(i).asDouble(),
                     feelsLikeTemperatures.get(i).asDouble()

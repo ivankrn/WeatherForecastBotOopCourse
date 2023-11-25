@@ -10,6 +10,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Chat;
 import org.telegram.telegrambots.meta.api.objects.Message;
+import ru.urfu.weatherforecastbot.model.Place;
 import ru.urfu.weatherforecastbot.model.WeatherForecast;
 import ru.urfu.weatherforecastbot.service.WeatherForecastService;
 import ru.urfu.weatherforecastbot.util.WeatherForecastFormatter;
@@ -19,7 +20,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
@@ -77,9 +77,10 @@ class MessageHandlerImplTest {
         LocalDateTime today = LocalDateTime.now();
         int hours = 24;
         List<WeatherForecast> todayForecast = new ArrayList<>(hours);
+        Place place = new Place("Екатеринбург", 56.875, 60.625, "Asia/Yekaterinburg");
         for (int hour = 0; hour < hours; hour++) {
             todayForecast.add(
-                    new WeatherForecast(today.withHour(hour), 0, 0));
+                    new WeatherForecast(place, today.withHour(hour), 0, 0));
         }
         when(weatherService.getForecast("Екатеринбург", 1)).thenReturn(todayForecast);
         when(forecastFormatter.formatTodayForecast(todayForecast))
@@ -99,7 +100,8 @@ class MessageHandlerImplTest {
 
         SendMessage responseMessage = messageHandler.handle(userMessage);
 
-        assertEquals("Команда введена неверно, попробуйте ещё раз.", responseMessage.getText());
+        assertEquals("Команда введена неверно, пожалуйста, используйте команду /help, чтобы прочитать инструкцию.",
+                responseMessage.getText());
     }
 
     @Test
@@ -115,7 +117,7 @@ class MessageHandlerImplTest {
     }
 
     @Test
-    @DisplayName("При вводе неизвестной команды ответное сообщение должно содержать предупреждение о том, что" +
+    @DisplayName("При вводе неизвестной команды ответное сообщение должно содержать предупреждение о том, что " +
             "бот не знает такой команды")
     void givenUnknownCommand_thenReturnUnknownCommand() {
         userMessage.setText("/some_unknown_command");
@@ -145,26 +147,28 @@ class MessageHandlerImplTest {
         long typicalUserChatId = 3L;
         typicalUserChat.setId(typicalUserChatId);
         Message typicalUserMessage = new Message();
-        typicalUserMessage.setText("/info Москва");
+        typicalUserMessage.setText("/info Нижний Новгород");
         typicalUserMessage.setChat(typicalUserChat);
         LocalDateTime today = LocalDateTime.now();
         int hours = 24;
         List<WeatherForecast> marsTodayForecast = new ArrayList<>(hours);
-        List<WeatherForecast> moscowTodayForecast = new ArrayList<>(hours);
+        Place mars = new Place("Марс", 0, 0, "Mars/Mars");
+        Place nizhnyNovgorod = new Place("Нижний Новгород", 56.328, 44.002, "Europe/Moscow");
+        List<WeatherForecast> nizhnyNovgorodTodayForecast = new ArrayList<>(hours);
         for (int hour = 0; hour < hours; hour++) {
-            moscowTodayForecast.add(
-                    new WeatherForecast(today.withHour(hour), 10, 5));
             marsTodayForecast.add(
-                    new WeatherForecast(today.withHour(hour), -60, -60));
+                    new WeatherForecast(mars, today.withHour(hour), -60, -60));
+            nizhnyNovgorodTodayForecast.add(
+                    new WeatherForecast(nizhnyNovgorod, today.withHour(hour), 10, 5));
         }
         when(weatherService.getForecast("Марс", 1))
                 .thenReturn(marsTodayForecast);
-        when(weatherService.getForecast("Москва", 1))
-                .thenReturn(moscowTodayForecast);
+        when(weatherService.getForecast("Нижний Новгород", 1))
+                .thenReturn(nizhnyNovgorodTodayForecast);
         when(forecastFormatter.formatTodayForecast(marsTodayForecast))
                 .thenReturn("Прогноз погоды на сегодня (Марс): ...");
-        when(forecastFormatter.formatTodayForecast(moscowTodayForecast))
-                .thenReturn("Прогноз погоды на сегодня (Москва): ...");
+        when(forecastFormatter.formatTodayForecast(nizhnyNovgorodTodayForecast))
+                .thenReturn("Прогноз погоды на сегодня (Нижний Новгород): ...");
 
         SendMessage replyToMarsDweller = messageHandler.handle(marsDwellerMessage);
         SendMessage replyToInstructionsBookworm = messageHandler.handle(instructionsBookwormMessage);
@@ -175,7 +179,8 @@ class MessageHandlerImplTest {
         assertEquals(instructionsBookwormChatId, Long.parseLong(replyToInstructionsBookworm.getChatId()));
         assertEquals("Извините, я не знаю такой команды.", replyToInstructionsBookworm.getText());
         assertEquals(typicalUserChatId, Long.parseLong(replyToTypicalUser.getChatId()));
-        assertEquals("Прогноз погоды на сегодня (Москва): ...", replyToTypicalUser.getText());
+        // проверяем, что корректно работает с названиями, содержащие пробелы
+        assertEquals("Прогноз погоды на сегодня (Нижний Новгород): ...", replyToTypicalUser.getText());
     }
 
     @Test
@@ -186,10 +191,11 @@ class MessageHandlerImplTest {
         int days = 7;
         int hourInterval = 4;
         List<WeatherForecast> weekForecast = new ArrayList<>();
+        Place place = new Place("Екатеринбург", 56.875, 60.625, "Asia/Yekaterinburg");
         for (int day = 0; day < days; day++) {
             for (int hour = 0; hour < 24; hour += hourInterval) {
                 weekForecast.add(
-                        new WeatherForecast(now.plusDays(day).withHour(hour), 0, 0));
+                        new WeatherForecast(place, now.plusDays(day).withHour(hour), 0, 0));
             }
         }
         when(weatherService.getForecast("Екатеринбург", 7))
@@ -224,7 +230,8 @@ class MessageHandlerImplTest {
 
         SendMessage responseMessage = messageHandler.handle(userMessage);
 
-        assertEquals("Команда введена неверно, попробуйте ещё раз.", responseMessage.getText());
+        assertEquals("Команда введена неверно, пожалуйста, используйте команду /help, чтобы прочитать инструкцию.",
+                responseMessage.getText());
     }
 
     @Test
