@@ -97,9 +97,7 @@ public class MessageHandlerImpl implements MessageHandler {
                 responseMessage.setText(BotText.START_COMMAND.getText());
                 responseMessage.setReplyMarkup(getMainMenuReplyMarkup());
             }
-            case "/help" -> {
-                responseMessage.setText(BotText.HELP_COMMAND.getText());
-            }
+            case "/help" -> responseMessage.setText(BotText.HELP_COMMAND.getText());
             case "/info" -> {
                 if (splittedText.length < 2) {
                     responseMessage.setText(BotText.WRONG_COMMAND_SYNTAX.getText());
@@ -133,7 +131,7 @@ public class MessageHandlerImpl implements MessageHandler {
         responseMessage.setChatId(chatId);
         ChatState chatState = chatStateRepository.findById(chatId).get();
         BotState currentBotState = chatState.getBotState();
-        if (text.equalsIgnoreCase("Отмена") || text.equalsIgnoreCase("Меню")) {
+        if (text.equalsIgnoreCase(BotText.CANCEL_BUTTON.getText()) || text.equalsIgnoreCase("Меню")) {
             chatState.setBotState(BotState.INITIAL);
             chatStateRepository.save(chatState);
             responseMessage.setText("Вы вернулись в основное меню");
@@ -141,7 +139,7 @@ public class MessageHandlerImpl implements MessageHandler {
         } else {
             switch (currentBotState) {
                 case INITIAL -> {
-                    if (text.equalsIgnoreCase("Узнать прогноз")) {
+                    if (text.equalsIgnoreCase(BotText.FORECAST_BUTTON.getText())) {
                         chatState.setBotState(BotState.WAITING_FOR_PLACE_NAME);
                         chatStateRepository.save(chatState);
                         responseMessage.setText("Введите название места");
@@ -149,7 +147,7 @@ public class MessageHandlerImpl implements MessageHandler {
                     } else if (text.equalsIgnoreCase("Старт")) {
                         responseMessage.setText(BotText.START_COMMAND.getText());
                         responseMessage.setReplyMarkup(getMainMenuReplyMarkup());
-                    } else if (text.equalsIgnoreCase("Помощь")) {
+                    } else if (text.equalsIgnoreCase(BotText.HELP_BUTTON.getText())) {
                         responseMessage.setText(BotText.HELP_COMMAND.getText());
                     } else {
                         responseMessage.setText(BotText.UNKNOWN_COMMAND.getText());
@@ -163,15 +161,15 @@ public class MessageHandlerImpl implements MessageHandler {
                     responseMessage.setReplyMarkup(getTimePeriodMenuReplyMarkup());
                 }
                 case WAITING_FOR_TIME_PERIOD -> {
-                    if (text.equalsIgnoreCase("Сегодня")) {
+                    if (text.equalsIgnoreCase(BotText.TODAY_BUTTON.getText())) {
                         chatState.setBotState(BotState.INITIAL);
                         chatStateRepository.save(chatState);
                         responseMessage.setText(handleTodayForecasts(chatState.getPlaceName()));
-                    } else if (text.equalsIgnoreCase("Завтра")) {
+                    } else if (text.equalsIgnoreCase(BotText.TOMORROW_BUTTON.getText())) {
                         chatState.setBotState(BotState.INITIAL);
                         chatStateRepository.save(chatState);
                         responseMessage.setText(handleTomorrowForecasts(chatState.getPlaceName()));
-                    } else if (text.equalsIgnoreCase("Неделя")) {
+                    } else if (text.equalsIgnoreCase(BotText.WEEK_BUTTON.getText())) {
                         chatState.setBotState(BotState.INITIAL);
                         chatStateRepository.save(chatState);
                         responseMessage.setText(handleWeekForecasts(chatState.getPlaceName()));
@@ -230,14 +228,19 @@ public class MessageHandlerImpl implements MessageHandler {
         return forecastFormatter.formatWeekForecast(weekForecasts);
     }
 
+    /**
+     * Генерирует встроенную разметку клавиатуры для главного меню
+     *
+     * @return встроенная разметка клавиатуры для главного меню
+     */
     private InlineKeyboardMarkup getMainMenuReplyMarkup() {
         InlineKeyboardMarkup mainMenuMarkup = new InlineKeyboardMarkup();
-        InlineKeyboardButton forecastButton = new InlineKeyboardButton("Узнать прогноз");
-        forecastButton.setCallbackData("Узнать прогноз");
-        InlineKeyboardButton helpButton = new InlineKeyboardButton("Помощь");
-        helpButton.setCallbackData("Помощь");
-        InlineKeyboardButton cancelButton = new InlineKeyboardButton("Отмена");
-        cancelButton.setCallbackData("Отмена");
+        InlineKeyboardButton forecastButton = new InlineKeyboardButton(BotText.FORECAST_BUTTON.getText());
+        forecastButton.setCallbackData(BotText.FORECAST_BUTTON.getText());
+        InlineKeyboardButton helpButton = new InlineKeyboardButton(BotText.HELP_BUTTON.getText());
+        helpButton.setCallbackData(BotText.HELP_BUTTON.getText());
+        InlineKeyboardButton cancelButton = new InlineKeyboardButton(BotText.CANCEL_BUTTON.getText());
+        cancelButton.setCallbackData(BotText.CANCEL_BUTTON.getText());
         List<InlineKeyboardButton> firstRow = List.of(forecastButton);
         List<InlineKeyboardButton> secondRow = List.of(helpButton, cancelButton);
         List<List<InlineKeyboardButton>> keyboard = List.of(firstRow, secondRow);
@@ -245,26 +248,36 @@ public class MessageHandlerImpl implements MessageHandler {
         return mainMenuMarkup;
     }
 
+    /**
+     * Генерирует встроенную разметку клавиатуры для меню отмены
+     *
+     * @return встроенная разметка клавиатуры для меню отмены
+     */
     private InlineKeyboardMarkup getCancelReplyMarkup() {
         InlineKeyboardMarkup cancelMarkup = new InlineKeyboardMarkup();
-        InlineKeyboardButton cancelButton = new InlineKeyboardButton("Отмена");
-        cancelButton.setCallbackData("Отмена");
+        InlineKeyboardButton cancelButton = new InlineKeyboardButton(BotText.CANCEL_BUTTON.getText());
+        cancelButton.setCallbackData(BotText.CANCEL_BUTTON.getText());
         List<InlineKeyboardButton> buttons = List.of(cancelButton);
         List<List<InlineKeyboardButton>> keyboard = List.of(buttons);
         cancelMarkup.setKeyboard(keyboard);
         return cancelMarkup;
     }
 
+    /**
+     * Генерирует встроенную разметку клавиатуры для меню периода времени
+     *
+     * @return встроенная разметка клавиатуры для меню периода времени
+     */
     private InlineKeyboardMarkup getTimePeriodMenuReplyMarkup() {
         InlineKeyboardMarkup timePeriodMenu = new InlineKeyboardMarkup();
-        InlineKeyboardButton todayButton = new InlineKeyboardButton("Сегодня");
-        todayButton.setCallbackData("Сегодня");
-        InlineKeyboardButton tomorrowButton = new InlineKeyboardButton("Завтра");
-        tomorrowButton.setCallbackData("Завтра");
-        InlineKeyboardButton weekButton = new InlineKeyboardButton("Неделя");
-        weekButton.setCallbackData("Неделя");
-        InlineKeyboardButton cancelButton = new InlineKeyboardButton("Отмена");
-        cancelButton.setCallbackData("Отмена");
+        InlineKeyboardButton todayButton = new InlineKeyboardButton(BotText.TODAY_BUTTON.getText());
+        todayButton.setCallbackData(BotText.TODAY_BUTTON.getText());
+        InlineKeyboardButton tomorrowButton = new InlineKeyboardButton(BotText.TOMORROW_BUTTON.getText());
+        tomorrowButton.setCallbackData(BotText.TOMORROW_BUTTON.getText());
+        InlineKeyboardButton weekButton = new InlineKeyboardButton(BotText.WEEK_BUTTON.getText());
+        weekButton.setCallbackData(BotText.WEEK_BUTTON.getText());
+        InlineKeyboardButton cancelButton = new InlineKeyboardButton(BotText.CANCEL_BUTTON.getText());
+        cancelButton.setCallbackData(BotText.CANCEL_BUTTON.getText());
         List<InlineKeyboardButton> firstRow = List.of(todayButton, tomorrowButton, weekButton);
         List<InlineKeyboardButton> secondRow = List.of(cancelButton);
         List<List<InlineKeyboardButton>> keyboard = List.of(firstRow, secondRow);
