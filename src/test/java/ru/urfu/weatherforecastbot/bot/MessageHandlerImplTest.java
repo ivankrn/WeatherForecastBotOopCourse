@@ -11,6 +11,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Chat;
 import org.telegram.telegrambots.meta.api.objects.Message;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
 import ru.urfu.weatherforecastbot.database.ChatStateRepository;
 import ru.urfu.weatherforecastbot.model.BotState;
 import ru.urfu.weatherforecastbot.model.ChatState;
@@ -24,6 +26,7 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.*;
 
 /**
@@ -67,6 +70,17 @@ class MessageHandlerImplTest {
         long userChatId = 1L;
         userChat.setId(userChatId);
         userMessage.setChat(userChat);
+    }
+
+    @Test
+    @DisplayName("Если пользователь прислал не текст, то ответное сообщение должно содержать предупреждение о том, " +
+            "что бот понимает только текст")
+    void whenUserSendsNonText_thenReturnUnderstandOnlyText() {
+        userMessage.setPhoto(List.of());
+
+        SendMessage responseMessage = messageHandler.handle(userMessage);
+
+        assertEquals("Извините, я понимаю только текст.", responseMessage.getText());
     }
 
     @Nested
@@ -246,6 +260,7 @@ class MessageHandlerImplTest {
             userMessage.setText("/start");
 
             SendMessage responseMessage = messageHandler.handle(userMessage);
+            List<InlineKeyboardButton> responseMessageButtons = getMessageButtons(responseMessage);
 
             assertEquals("""
                             Здравствуйте! Я бот для просмотра прогноза погоды. Доступны следующие команды:
@@ -255,6 +270,10 @@ class MessageHandlerImplTest {
                             /info_week <название населенного пункта> - вывести прогноз погоды для <название населенного пункта> на неделю вперёд.
                             """,
                     responseMessage.getText());
+            assertEquals(3, responseMessageButtons.size());
+            assertTrue(responseMessageButtons.stream().anyMatch(button -> button.getText().equals("Узнать прогноз")));
+            assertTrue(responseMessageButtons.stream().anyMatch(button -> button.getText().equals("Помощь")));
+            assertTrue(responseMessageButtons.stream().anyMatch(button -> button.getText().equals("Отмена")));
         }
 
         @Test
@@ -323,7 +342,7 @@ class MessageHandlerImplTest {
             chat.setId(chatId);
             Message forecastMessage = new Message();
             forecastMessage.setChat(chat);
-            forecastMessage.setText("прогноз");
+            forecastMessage.setText("Узнать прогноз");
             ChatState chatState = new ChatState();
             chatState.setChatId(chatId);
             chatState.setBotState(BotState.INITIAL);
@@ -349,9 +368,15 @@ class MessageHandlerImplTest {
             placeNameMessage.setText("Екатеринбург");
 
             SendMessage placeNameMessageResponse = messageHandler.handle(placeNameMessage);
+            List<InlineKeyboardButton> placeNameMessageButtons = getMessageButtons(placeNameMessageResponse);
             assertEquals("Выберите временной период для просмотра (сегодня, завтра, неделя)",
                     placeNameMessageResponse.getText());
             assertEquals(BotState.WAITING_FOR_TIME_PERIOD, chatState.getBotState());
+            assertEquals(4, placeNameMessageButtons.size());
+            assertTrue(placeNameMessageButtons.stream().anyMatch(button -> button.getText().equals("Сегодня")));
+            assertTrue(placeNameMessageButtons.stream().anyMatch(button -> button.getText().equals("Завтра")));
+            assertTrue(placeNameMessageButtons.stream().anyMatch(button -> button.getText().equals("Неделя")));
+            assertTrue(placeNameMessageButtons.stream().anyMatch(button -> button.getText().equals("Отмена")));
 
             Message timePeriodMessage = new Message();
             timePeriodMessage.setChat(chat);
@@ -380,9 +405,15 @@ class MessageHandlerImplTest {
             when(chatStateRepository.findById(chatId)).thenReturn(Optional.of(chatState));
 
             SendMessage wrongTimePeriodMessageResponse = messageHandler.handle(wrongTimePeriodMessage);
+            List<InlineKeyboardButton> responseMessageButtons = getMessageButtons(wrongTimePeriodMessageResponse);
             assertEquals("Введите корректный временной период. Допустимые значения: сегодня, завтра, неделя",
                     wrongTimePeriodMessageResponse.getText());
             assertEquals(BotState.WAITING_FOR_TIME_PERIOD, chatState.getBotState());
+            assertEquals(4, responseMessageButtons.size());
+            assertTrue(responseMessageButtons.stream().anyMatch(button -> button.getText().equals("Сегодня")));
+            assertTrue(responseMessageButtons.stream().anyMatch(button -> button.getText().equals("Завтра")));
+            assertTrue(responseMessageButtons.stream().anyMatch(button -> button.getText().equals("Неделя")));
+            assertTrue(responseMessageButtons.stream().anyMatch(button -> button.getText().equals("Отмена")));
         }
 
         @Test
@@ -397,21 +428,27 @@ class MessageHandlerImplTest {
             userMessage.setText("отмена");
 
             SendMessage responseMessage = messageHandler.handle(userMessage);
+            List<InlineKeyboardButton> responseMessageButtons = getMessageButtons(responseMessage);
             assertEquals("Вы вернулись в основное меню", responseMessage.getText());
             assertEquals(BotState.INITIAL, chatState.getBotState());
+            assertEquals(3, responseMessageButtons.size());
+            assertTrue(responseMessageButtons.stream().anyMatch(button -> button.getText().equals("Узнать прогноз")));
+            assertTrue(responseMessageButtons.stream().anyMatch(button -> button.getText().equals("Помощь")));
+            assertTrue(responseMessageButtons.stream().anyMatch(button -> button.getText().equals("Отмена")));
         }
 
     }
 
-    @Test
-    @DisplayName("Если пользователь прислал не текст, то ответное сообщение должно содержать предупреждение о том, " +
-            "что бот понимает только текст")
-    void whenUserSendsNonText_thenReturnUnderstandOnlyText() {
-        userMessage.setPhoto(List.of());
-
-        SendMessage responseMessage = messageHandler.handle(userMessage);
-
-        assertEquals("Извините, я понимаю только текст.", responseMessage.getText());
+    /**
+     * Возвращает список кнопок, прикрепленных к сообщению
+     *
+     * @param message сообщение
+     * @return список кнопок, прикрепленных к сообщению
+     */
+    private List<InlineKeyboardButton> getMessageButtons(SendMessage message) {
+        InlineKeyboardMarkup messageMarkup = (InlineKeyboardMarkup) message.getReplyMarkup();
+        return messageMarkup.getKeyboard().stream()
+                .flatMap(List::stream)
+                .toList();
     }
-
 }
