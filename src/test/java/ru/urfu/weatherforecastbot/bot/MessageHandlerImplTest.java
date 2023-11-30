@@ -311,7 +311,7 @@ class MessageHandlerImplTest {
 
         @Test
         @DisplayName("Если пользователь запрашивает меню помощи, то ответное сообщение должно содержать" +
-                " меню помощи и при этом состояние чата не должно измениться")
+                " меню помощи")
         void whenHelp_thenReturnHelp() {
             ChatState chatState = new ChatState();
             chatState.setChatId(userMessage.getChatId());
@@ -330,7 +330,6 @@ class MessageHandlerImplTest {
                             /info_week <название населенного пункта> - вывести прогноз погоды для <название населенного пункта> на неделю вперёд.
                             """
                     , responseMessage.getText());
-            assertEquals(BotState.INITIAL, chatState.getBotState());
         }
 
         @Test
@@ -361,7 +360,6 @@ class MessageHandlerImplTest {
 
             SendMessage forecastMessageResponse = messageHandler.handle(forecastMessage);
             assertEquals("Введите название места", forecastMessageResponse.getText());
-            assertEquals(BotState.WAITING_FOR_PLACE_NAME, chatState.getBotState());
 
             Message placeNameMessage = new Message();
             placeNameMessage.setChat(chat);
@@ -371,7 +369,6 @@ class MessageHandlerImplTest {
             List<InlineKeyboardButton> placeNameMessageButtons = getMessageButtons(placeNameMessageResponse);
             assertEquals("Выберите временной период для просмотра (сегодня, завтра, неделя)",
                     placeNameMessageResponse.getText());
-            assertEquals(BotState.WAITING_FOR_TIME_PERIOD, chatState.getBotState());
             assertEquals(4, placeNameMessageButtons.size());
             assertTrue(placeNameMessageButtons.stream().anyMatch(button -> button.getText().equals("Сегодня")));
             assertTrue(placeNameMessageButtons.stream().anyMatch(button -> button.getText().equals("Завтра")));
@@ -384,31 +381,37 @@ class MessageHandlerImplTest {
 
             SendMessage timePeriodMessageResponse = messageHandler.handle(timePeriodMessage);
             assertEquals("Прогноз погоды на сегодня: ...", timePeriodMessageResponse.getText());
-            assertEquals(BotState.INITIAL, chatState.getBotState());
         }
 
         @Test
         @DisplayName("Если пользователь во время запроса погоды присылает некорректный временной период, то ответное " +
-                "сообщение должно содержать просьбу ввести временной период повторно и при этом состояние бота " +
-                "не должно измениться")
+                "сообщение должно содержать просьбу ввести временной период повторно")
         void givenUserSendsWrongTimePeriod_whenForecast_thenAskTimePeriodAgain() {
             long chatId = 1L;
             Chat chat = new Chat();
             chat.setId(chatId);
+            Message forecastMessage = new Message();
+            forecastMessage.setChat(chat);
+            forecastMessage.setText("Узнать прогноз");
+            Message placeNameMessage = new Message();
+            placeNameMessage.setChat(chat);
+            placeNameMessage.setText("Екатеринбург");
             Message wrongTimePeriodMessage = new Message();
             wrongTimePeriodMessage.setChat(chat);
             wrongTimePeriodMessage.setText("привет");
             ChatState chatState = new ChatState();
             chatState.setChatId(chatId);
-            chatState.setBotState(BotState.WAITING_FOR_TIME_PERIOD);
+            chatState.setBotState(BotState.INITIAL);
             when(chatStateRepository.existsById(chatId)).thenReturn(true);
             when(chatStateRepository.findById(chatId)).thenReturn(Optional.of(chatState));
 
+            messageHandler.handle(forecastMessage);
+            messageHandler.handle(placeNameMessage);
             SendMessage wrongTimePeriodMessageResponse = messageHandler.handle(wrongTimePeriodMessage);
-            List<InlineKeyboardButton> responseMessageButtons = getMessageButtons(wrongTimePeriodMessageResponse);
+
             assertEquals("Введите корректный временной период. Допустимые значения: сегодня, завтра, неделя",
                     wrongTimePeriodMessageResponse.getText());
-            assertEquals(BotState.WAITING_FOR_TIME_PERIOD, chatState.getBotState());
+            List<InlineKeyboardButton> responseMessageButtons = getMessageButtons(wrongTimePeriodMessageResponse);
             assertEquals(4, responseMessageButtons.size());
             assertTrue(responseMessageButtons.stream().anyMatch(button -> button.getText().equals("Сегодня")));
             assertTrue(responseMessageButtons.stream().anyMatch(button -> button.getText().equals("Завтра")));
@@ -418,23 +421,74 @@ class MessageHandlerImplTest {
 
         @Test
         @DisplayName("Если пользователь отменяет действие, то ответное сообщение должно содержать уведомление о  " +
-                "возврате в меню и при этом состояние чата вернется в начальное")
+                "возврате в меню")
         void whenCancel_thenReturnToMenu() {
+            long chatId = 1L;
+            Chat chat = new Chat();
+            chat.setId(chatId);
+            Message forecastMessage = new Message();
+            forecastMessage.setChat(chat);
+            forecastMessage.setText("Узнать прогноз");
+            Message cancelMessage = new Message();
+            cancelMessage.setChat(chat);
+            cancelMessage.setText("Отмена");
             ChatState chatState = new ChatState();
-            chatState.setChatId(userMessage.getChatId());
-            chatState.setBotState(BotState.WAITING_FOR_PLACE_NAME);
-            when(chatStateRepository.existsById(userMessage.getChatId())).thenReturn(true);
-            when(chatStateRepository.findById(userMessage.getChatId())).thenReturn(Optional.of(chatState));
-            userMessage.setText("отмена");
+            chatState.setChatId(chatId);
+            chatState.setBotState(BotState.INITIAL);
+            when(chatStateRepository.existsById(chatId)).thenReturn(true);
+            when(chatStateRepository.findById(chatId)).thenReturn(Optional.of(chatState));
 
-            SendMessage responseMessage = messageHandler.handle(userMessage);
-            List<InlineKeyboardButton> responseMessageButtons = getMessageButtons(responseMessage);
+            messageHandler.handle(forecastMessage);
+            SendMessage responseMessage = messageHandler.handle(cancelMessage);
+
             assertEquals("Вы вернулись в основное меню", responseMessage.getText());
-            assertEquals(BotState.INITIAL, chatState.getBotState());
+            List<InlineKeyboardButton> responseMessageButtons = getMessageButtons(responseMessage);
             assertEquals(3, responseMessageButtons.size());
             assertTrue(responseMessageButtons.stream().anyMatch(button -> button.getText().equals("Узнать прогноз")));
             assertTrue(responseMessageButtons.stream().anyMatch(button -> button.getText().equals("Помощь")));
             assertTrue(responseMessageButtons.stream().anyMatch(button -> button.getText().equals("Отмена")));
+        }
+
+        @Test
+        @DisplayName("При взаимодействии с несколькими пользователями в форме диалога, бот должен отвечать каждому  " +
+                "пользователю соответственно")
+        void givenSeveralUsers_whenDialog_thenAnswerEveryone() {
+            long curiousUserChatId = 1L;
+            Chat curiousUserChat = new Chat();
+            curiousUserChat.setId(curiousUserChatId);
+            Message curiousUserMessage = new Message();
+            curiousUserMessage.setChat(curiousUserChat);
+            curiousUserMessage.setText("Узнать прогноз");
+            ChatState curiousUserChatState = new ChatState();
+            curiousUserChatState.setChatId(curiousUserChatId);
+            curiousUserChatState.setBotState(BotState.INITIAL);
+            when(chatStateRepository.existsById(curiousUserChatId)).thenReturn(true);
+            when(chatStateRepository.findById(curiousUserChatId)).thenReturn(Optional.of(curiousUserChatState));
+            long manualReaderChatId = 2L;
+            Chat manualReaderChat = new Chat();
+            manualReaderChat.setId(manualReaderChatId);
+            Message manualReaderMessage = new Message();
+            manualReaderMessage.setChat(manualReaderChat);
+            manualReaderMessage.setText("Помощь");
+            ChatState manualReaderChatState = new ChatState();
+            manualReaderChatState.setChatId(manualReaderChatId);
+            manualReaderChatState.setBotState(BotState.INITIAL);
+            when(chatStateRepository.existsById(manualReaderChatId)).thenReturn(true);
+            when(chatStateRepository.findById(manualReaderChatId)).thenReturn(Optional.of(manualReaderChatState));
+
+            SendMessage curiousUserMessageResponse = messageHandler.handle(curiousUserMessage);
+            SendMessage manualReaderMessageResponse = messageHandler.handle(manualReaderMessage);
+
+            assertEquals(curiousUserChatId, Long.parseLong(curiousUserMessageResponse.getChatId()));
+            assertEquals("Введите название места", curiousUserMessageResponse.getText());
+            assertEquals(manualReaderChatId, Long.parseLong(manualReaderMessageResponse.getChatId()));
+            assertEquals("""
+                 Вы зашли в меню помощи. Для вас доступны следующие команды:
+                 /start - запустить бота
+                 /help - меню помощи
+                 /info <название населенного пункта> - вывести прогноз погоды для <населенного пункта>
+                 /info_week <название населенного пункта> - вывести прогноз погоды для <название населенного пункта> на неделю вперёд.
+                 """, manualReaderMessageResponse.getText());
         }
 
     }
