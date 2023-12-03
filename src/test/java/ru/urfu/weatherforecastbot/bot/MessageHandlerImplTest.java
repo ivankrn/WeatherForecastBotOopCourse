@@ -13,7 +13,7 @@ import org.telegram.telegrambots.meta.api.objects.Message;
 import ru.urfu.weatherforecastbot.model.Place;
 import ru.urfu.weatherforecastbot.model.WeatherForecast;
 import ru.urfu.weatherforecastbot.service.WeatherForecastService;
-import ru.urfu.weatherforecastbot.util.WeatherForecastFormatter;
+import ru.urfu.weatherforecastbot.util.WeatherForecastFormatterImpl;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -32,7 +32,7 @@ class MessageHandlerImplTest {
      * Форматировщик прогноза погоды в удобочитаемый вид
      */
     @Mock
-    private WeatherForecastFormatter forecastFormatter;
+    private WeatherForecastFormatterImpl forecastFormatter;
     /**
      * Сервис для получения прогнозов погоды
      */

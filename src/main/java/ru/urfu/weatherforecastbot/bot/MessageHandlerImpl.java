@@ -6,7 +6,6 @@ import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Message;
 import ru.urfu.weatherforecastbot.model.WeatherForecast;
 import ru.urfu.weatherforecastbot.service.WeatherForecastService;
-import ru.urfu.weatherforecastbot.util.WeatherForecastFormatter;
 import ru.urfu.weatherforecastbot.util.WeatherForecastFormatterImpl;
 
 import java.util.List;
@@ -21,7 +20,7 @@ public class MessageHandlerImpl implements MessageHandler {
     /**
      * Форматировщик прогноза погоды в удобочитаемый вид
      */
-    private final WeatherForecastFormatter forecastFormatter;
+    private final WeatherForecastFormatterImpl forecastFormatter;
 
     /**
      * Создает экземпляр MessageHandlerImpl, используя в качестве {@link MessageHandlerImpl#forecastFormatter
@@ -41,7 +40,7 @@ public class MessageHandlerImpl implements MessageHandler {
      * @param weatherService сервис для получения прогнозов погоды
      * @param forecastFormatter форматировщик прогноза погоды в удобочитаемый вид
      */
-    public MessageHandlerImpl(WeatherForecastService weatherService, WeatherForecastFormatter forecastFormatter) {
+    public MessageHandlerImpl(WeatherForecastService weatherService, WeatherForecastFormatterImpl forecastFormatter) {
         this.weatherService = weatherService;
         this.forecastFormatter = forecastFormatter;
     }
@@ -56,25 +55,25 @@ public class MessageHandlerImpl implements MessageHandler {
             String command = receivedText[0];
 
             switch (command) {
-                case "/start" -> responseMessage.setText(BotText.START_COMMAND.getText());
-                case "/help" -> responseMessage.setText(BotText.HELP_COMMAND.getText());
-                case "/info" -> {
+                case BotConstants.COMMAND_START -> responseMessage.setText(BotConstants.START_TEXT);
+                case BotConstants.COMMAND_HELP -> responseMessage.setText(BotConstants.HELP_TEXT);
+                case BotConstants.COMMAND_FORECAST_TODAY -> {
                     if (receivedText.length < 2) {
-                        responseMessage.setText(BotText.WRONG_COMMAND_SYNTAX.getText());
+                        responseMessage.setText(BotConstants.WRONG_COMMAND_SYNTAX);
                     } else {
                         String place = message.getText().substring(message.getText().indexOf(" ") + 1);
                         responseMessage.setText(handleTodayForecasts(place));
                     }
                 }
-                case "/info_week" -> {
+                case BotConstants.COMMAND_FORECAST_WEEK -> {
                     if (receivedText.length < 2) {
-                        responseMessage.setText(BotText.WRONG_COMMAND_SYNTAX.getText());
+                        responseMessage.setText(BotConstants.WRONG_COMMAND_SYNTAX);
                     } else {
                         String place = message.getText().substring(message.getText().indexOf(" ") + 1);
                         responseMessage.setText(handleWeekForecasts(place));
                     }
                 }
-                default -> responseMessage.setText(BotText.UNKNOWN_COMMAND.getText());
+                default -> responseMessage.setText(BotConstants.UNKNOWN_COMMAND);
             }
         }
         
@@ -90,7 +89,7 @@ public class MessageHandlerImpl implements MessageHandler {
     private String handleTodayForecasts(String placeName) {
         List<WeatherForecast> todayForecasts = weatherService.getForecast(placeName, 1);
         if (todayForecasts == null) {
-            return BotText.NOT_FOUND.getText();
+            return BotConstants.NOT_FOUND_PLACE;
         }
         return forecastFormatter.formatTodayForecast(todayForecasts);
     }
@@ -104,7 +103,7 @@ public class MessageHandlerImpl implements MessageHandler {
     private String handleWeekForecasts(String placeName) {
         List<WeatherForecast> weekForecasts = weatherService.getForecast(placeName, 7);
         if (weekForecasts == null) {
-            return BotText.NOT_FOUND.getText();
+            return BotConstants.NOT_FOUND_PLACE;
         }
         return forecastFormatter.formatWeekForecast(weekForecasts);
     }
