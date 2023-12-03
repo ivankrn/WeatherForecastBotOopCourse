@@ -3,6 +3,7 @@ package ru.urfu.weatherforecastbot.model;
 import jakarta.persistence.*;
 
 import java.util.Objects;
+import java.util.Optional;
 
 /**
  * Состояние чата
@@ -23,6 +24,12 @@ public class ChatState {
      */
     @Column(name = "place_name")
     private String placeName;
+
+    /**
+     * Временной период прогноза погоды (если пользователь в состоянии запроса погоды)
+     */
+    @Column(name = "time_period")
+    private String timePeriod;
 
     /**
      * Состояние бота
@@ -64,6 +71,24 @@ public class ChatState {
      */
     public void setPlaceName(String placeName) {
         this.placeName = placeName;
+    }
+
+    /**
+     * Возвращает временной период
+     *
+     * @return временной период
+     */
+    public Optional<String> getTimePeriod() {
+        return Optional.ofNullable(timePeriod);
+    }
+
+    /**
+     * Устанавливает временной период
+     *
+     * @param timePeriod временной период
+     */
+    public void setTimePeriod(String timePeriod) {
+        this.timePeriod = timePeriod;
     }
 
     /**
