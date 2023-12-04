@@ -15,9 +15,10 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKe
 import ru.urfu.weatherforecastbot.database.ChatStateRepository;
 import ru.urfu.weatherforecastbot.model.BotState;
 import ru.urfu.weatherforecastbot.model.ChatState;
+import ru.urfu.weatherforecastbot.model.Place;
 import ru.urfu.weatherforecastbot.model.WeatherForecast;
 import ru.urfu.weatherforecastbot.service.WeatherForecastService;
-import ru.urfu.weatherforecastbot.util.WeatherForecastFormatter;
+import ru.urfu.weatherforecastbot.util.WeatherForecastFormatterImpl;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -38,7 +39,7 @@ class MessageHandlerImplTest {
      * Форматировщик прогноза погоды в удобочитаемый вид
      */
     @Mock
-    private WeatherForecastFormatter forecastFormatter;
+    private WeatherForecastFormatterImpl forecastFormatter;
     /**
      * Сервис для получения прогнозов погоды
      */
@@ -69,11 +70,6 @@ class MessageHandlerImplTest {
         long userChatId = 1L;
         userChat.setId(userChatId);
         userMessage.setChat(userChat);
-        ChatState chatState = new ChatState();
-        chatState.setChatId(userChatId);
-        chatState.setBotState(BotState.INITIAL);
-        when(chatStateRepository.existsById(userChatId)).thenReturn(true);
-        when(chatStateRepository.findById(userChatId)).thenReturn(Optional.of(chatState));
     }
 
     @Test
@@ -90,6 +86,10 @@ class MessageHandlerImplTest {
     @Test
     @DisplayName("Бот должен отвечать именно тому пользователю, от которого пришло сообщение")
     void whenUserSendsMessage_thenSendMessageToThatUser() {
+        ChatState chatState = new ChatState();
+        chatState.setChatId(userMessage.getChatId());
+        chatState.setBotState(BotState.INITIAL);
+        when(chatStateRepository.findById(userMessage.getChatId())).thenReturn(Optional.of(chatState));
         userMessage.setText("/start");
 
         SendMessage responseMessage = messageHandler.handle(userMessage);
@@ -104,9 +104,10 @@ class MessageHandlerImplTest {
         LocalDateTime today = LocalDateTime.now();
         int hours = 24;
         List<WeatherForecast> todayForecast = new ArrayList<>(hours);
+        Place place = new Place("Екатеринбург", 56.875, 60.625, "Asia/Yekaterinburg");
         for (int hour = 0; hour < hours; hour++) {
             todayForecast.add(
-                    new WeatherForecast(today.withHour(hour), 0, 0));
+                    new WeatherForecast(place, today.withHour(hour), 0, 0));
         }
         when(weatherService.getForecast("Екатеринбург", 1)).thenReturn(todayForecast);
         when(forecastFormatter.formatTodayForecast(todayForecast))
@@ -125,24 +126,24 @@ class MessageHandlerImplTest {
         long chatId = 1L;
         Chat chat = new Chat();
         chat.setId(chatId);
-        ChatState chatState = new ChatState();
-        chatState.setChatId(chatId);
-        chatState.setBotState(BotState.INITIAL);
         Message forecastTodayMessage = new Message();
         forecastTodayMessage.setChat(chat);
         forecastTodayMessage.setText("/info");
-        when(chatStateRepository.existsById(chatId)).thenReturn(true);
-        when(chatStateRepository.findById(chatId)).thenReturn(Optional.of(chatState));
         LocalDateTime today = LocalDateTime.now();
         int hours = 24;
         List<WeatherForecast> todayForecast = new ArrayList<>(hours);
+        Place place = new Place("Екатеринбург", 56.875, 60.625, "Asia/Yekaterinburg");
         for (int hour = 0; hour < hours; hour++) {
             todayForecast.add(
-                    new WeatherForecast(today.withHour(hour), 0, 0));
+                    new WeatherForecast(place, today.withHour(hour), 0, 0));
         }
         when(weatherService.getForecast("Екатеринбург", 1)).thenReturn(todayForecast);
         when(forecastFormatter.formatTodayForecast(todayForecast))
                 .thenReturn("Прогноз погоды на сегодня (Екатеринбург): ...");
+        ChatState chatState = new ChatState();
+        chatState.setChatId(chatId);
+        chatState.setBotState(BotState.INITIAL);
+        when(chatStateRepository.findById(chatId)).thenReturn(Optional.of(chatState));
 
         SendMessage forecastTodayMessageResponse = messageHandler.handle(forecastTodayMessage);
         assertEquals("Введите название места", forecastTodayMessageResponse.getText());
@@ -174,6 +175,10 @@ class MessageHandlerImplTest {
     @DisplayName("При вводе неизвестной команды ответное сообщение должно содержать предупреждение о том, что " +
             "бот не знает такой команды")
     void givenUnknownCommand_thenReturnUnknownCommand() {
+        ChatState chatState = new ChatState();
+        chatState.setChatId(userMessage.getChatId());
+        chatState.setBotState(BotState.INITIAL);
+        when(chatStateRepository.findById(userMessage.getChatId())).thenReturn(Optional.of(chatState));
         userMessage.setText("/some_unknown_command");
 
         SendMessage responseMessage = messageHandler.handle(userMessage);
@@ -201,42 +206,41 @@ class MessageHandlerImplTest {
         long typicalUserChatId = 3L;
         typicalUserChat.setId(typicalUserChatId);
         Message typicalUserMessage = new Message();
-        typicalUserMessage.setText("/info Москва");
+        typicalUserMessage.setText("/info Нижний Новгород");
         typicalUserMessage.setChat(typicalUserChat);
         LocalDateTime today = LocalDateTime.now();
         int hours = 24;
+        Place mars = new Place("Марс", 0, 0, "Mars/Mars");
+        Place nizhnyNovgorod = new Place("Нижний Новгород", 56.328, 44.002, "Europe/Moscow");
+        List<WeatherForecast> nizhnyNovgorodTodayForecast = new ArrayList<>(hours);
         List<WeatherForecast> marsTodayForecast = new ArrayList<>(hours);
-        List<WeatherForecast> moscowTodayForecast = new ArrayList<>(hours);
         for (int hour = 0; hour < hours; hour++) {
-            moscowTodayForecast.add(
-                    new WeatherForecast(today.withHour(hour), 10, 5));
             marsTodayForecast.add(
-                    new WeatherForecast(today.withHour(hour), -60, -60));
+                    new WeatherForecast(mars, today.withHour(hour), -60, -60));
+            nizhnyNovgorodTodayForecast.add(
+                    new WeatherForecast(nizhnyNovgorod, today.withHour(hour), 10, 5));
         }
         when(weatherService.getForecast("Марс", 1))
                 .thenReturn(marsTodayForecast);
-        when(weatherService.getForecast("Москва", 1))
-                .thenReturn(moscowTodayForecast);
+        when(weatherService.getForecast("Нижний Новгород", 1))
+                .thenReturn(nizhnyNovgorodTodayForecast);
         when(forecastFormatter.formatTodayForecast(marsTodayForecast))
                 .thenReturn("Прогноз погоды на сегодня (Марс): ...");
-        when(forecastFormatter.formatTodayForecast(moscowTodayForecast))
-                .thenReturn("Прогноз погоды на сегодня (Москва): ...");
+        when(forecastFormatter.formatTodayForecast(nizhnyNovgorodTodayForecast))
+                .thenReturn("Прогноз погоды на сегодня (Нижний Новгород): ...");
         ChatState marsDwellerChatState = new ChatState();
         marsDwellerChatState.setChatId(marsDwellerChatId);
         marsDwellerChatState.setBotState(BotState.INITIAL);
-        when(chatStateRepository.existsById(marsDwellerChatId)).thenReturn(true);
         when(chatStateRepository.findById(marsDwellerChatId))
                 .thenReturn(Optional.of(marsDwellerChatState));
         ChatState instructionsBookwormChatState = new ChatState();
         instructionsBookwormChatState.setChatId(instructionsBookwormChatId);
         instructionsBookwormChatState.setBotState(BotState.INITIAL);
-        when(chatStateRepository.existsById(instructionsBookwormChatId)).thenReturn(true);
         when(chatStateRepository.findById(instructionsBookwormChatId))
                 .thenReturn(Optional.of(instructionsBookwormChatState));
         ChatState typicalUserChatState = new ChatState();
         typicalUserChatState.setChatId(typicalUserChatId);
         typicalUserChatState.setBotState(BotState.INITIAL);
-        when(chatStateRepository.existsById(typicalUserChatId)).thenReturn(true);
         when(chatStateRepository.findById(typicalUserChatId))
                 .thenReturn(Optional.of(typicalUserChatState));
 
@@ -249,7 +253,8 @@ class MessageHandlerImplTest {
         assertEquals(instructionsBookwormChatId, Long.parseLong(replyToInstructionsBookworm.getChatId()));
         assertEquals("Извините, я не знаю такой команды.", replyToInstructionsBookworm.getText());
         assertEquals(typicalUserChatId, Long.parseLong(replyToTypicalUser.getChatId()));
-        assertEquals("Прогноз погоды на сегодня (Москва): ...", replyToTypicalUser.getText());
+        // проверяем, что корректно работает с названиями, содержащие пробелы
+        assertEquals("Прогноз погоды на сегодня (Нижний Новгород): ...", replyToTypicalUser.getText());
     }
 
     @Test
@@ -260,10 +265,11 @@ class MessageHandlerImplTest {
         int days = 7;
         int hourInterval = 4;
         List<WeatherForecast> weekForecast = new ArrayList<>();
+        Place place = new Place("Екатеринбург", 56.875, 60.625, "Asia/Yekaterinburg");
         for (int day = 0; day < days; day++) {
             for (int hour = 0; hour < 24; hour += hourInterval) {
                 weekForecast.add(
-                        new WeatherForecast(now.plusDays(day).withHour(hour), 0, 0));
+                        new WeatherForecast(place, now.plusDays(day).withHour(hour), 0, 0));
             }
         }
         when(weatherService.getForecast("Екатеринбург", 7))
@@ -296,27 +302,27 @@ class MessageHandlerImplTest {
         long chatId = 1L;
         Chat chat = new Chat();
         chat.setId(chatId);
-        ChatState chatState = new ChatState();
-        chatState.setChatId(chatId);
-        chatState.setBotState(BotState.INITIAL);
         Message forecastWeekMessage = new Message();
         forecastWeekMessage.setChat(chat);
         forecastWeekMessage.setText("/info_week");
-        when(chatStateRepository.existsById(chatId)).thenReturn(true);
-        when(chatStateRepository.findById(chatId)).thenReturn(Optional.of(chatState));
         LocalDateTime now = LocalDateTime.now();
         int days = 7;
         int hourInterval = 4;
         List<WeatherForecast> weekForecast = new ArrayList<>();
+        Place place = new Place("Екатеринбург", 56.875, 60.625, "Asia/Yekaterinburg");
         for (int day = 0; day < days; day++) {
             for (int hour = 0; hour < 24; hour += hourInterval) {
                 weekForecast.add(
-                        new WeatherForecast(now.plusDays(day).withHour(hour), 0, 0));
+                        new WeatherForecast(place, now.plusDays(day).withHour(hour), 0, 0));
             }
         }
         when(weatherService.getForecast("Екатеринбург", 7)).thenReturn(weekForecast);
         when(forecastFormatter.formatWeekForecast(weekForecast))
                 .thenReturn("Прогноз погоды на неделю вперед (Екатеринбург): ...");
+        ChatState chatState = new ChatState();
+        chatState.setChatId(chatId);
+        chatState.setBotState(BotState.INITIAL);
+        when(chatStateRepository.findById(chatId)).thenReturn(Optional.of(chatState));
 
         SendMessage forecastWeekMessageResponse = messageHandler.handle(forecastWeekMessage);
         assertEquals("Введите название места", forecastWeekMessageResponse.getText());
@@ -335,6 +341,10 @@ class MessageHandlerImplTest {
     @Test
     @DisplayName("При вводе команды \"/start\" пользователю должно отобразиться приветствие")
     void givenStartCommand_thenReturnHelloMessage() {
+        ChatState chatState = new ChatState();
+        chatState.setChatId(userMessage.getChatId());
+        chatState.setBotState(BotState.INITIAL);
+        when(chatStateRepository.findById(userMessage.getChatId())).thenReturn(Optional.of(chatState));
         userMessage.setText("/start");
 
         SendMessage responseMessage = messageHandler.handle(userMessage);
@@ -392,21 +402,21 @@ class MessageHandlerImplTest {
         Message forecastMessage = new Message();
         forecastMessage.setChat(chat);
         forecastMessage.setText("Узнать прогноз");
-        ChatState chatState = new ChatState();
-        chatState.setChatId(chatId);
-        chatState.setBotState(BotState.INITIAL);
-        when(chatStateRepository.existsById(chatId)).thenReturn(true);
-        when(chatStateRepository.findById(chatId)).thenReturn(Optional.of(chatState));
         LocalDateTime today = LocalDateTime.now();
         int hours = 24;
         List<WeatherForecast> todayForecast = new ArrayList<>(hours);
+        Place place = new Place("Екатеринбург", 56.875, 60.625, "Asia/Yekaterinburg");
         for (int hour = 0; hour < hours; hour++) {
             todayForecast.add(
-                    new WeatherForecast(today.withHour(hour), 0, 0));
+                    new WeatherForecast(place, today.withHour(hour), 0, 0));
         }
         when(weatherService.getForecast("Екатеринбург", 1)).thenReturn(todayForecast);
         when(forecastFormatter.formatTodayForecast(todayForecast))
                 .thenReturn("Прогноз погоды на сегодня: ...");
+        ChatState chatState = new ChatState();
+        chatState.setChatId(chatId);
+        chatState.setBotState(BotState.INITIAL);
+        when(chatStateRepository.findById(chatId)).thenReturn(Optional.of(chatState));
 
         SendMessage forecastMessageResponse = messageHandler.handle(forecastMessage);
         assertEquals("Введите название места", forecastMessageResponse.getText());
@@ -452,7 +462,6 @@ class MessageHandlerImplTest {
         ChatState chatState = new ChatState();
         chatState.setChatId(chatId);
         chatState.setBotState(BotState.INITIAL);
-        when(chatStateRepository.existsById(chatId)).thenReturn(true);
         when(chatStateRepository.findById(chatId)).thenReturn(Optional.of(chatState));
 
         messageHandler.handle(forecastMessage);
@@ -485,7 +494,6 @@ class MessageHandlerImplTest {
         ChatState chatState = new ChatState();
         chatState.setChatId(chatId);
         chatState.setBotState(BotState.INITIAL);
-        when(chatStateRepository.existsById(chatId)).thenReturn(true);
         when(chatStateRepository.findById(chatId)).thenReturn(Optional.of(chatState));
 
         messageHandler.handle(forecastMessage);
