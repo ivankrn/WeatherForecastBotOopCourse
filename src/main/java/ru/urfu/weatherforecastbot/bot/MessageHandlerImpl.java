@@ -70,12 +70,6 @@ public class MessageHandlerImpl implements MessageHandler {
             newChatState.setBotState(BotState.INITIAL);
             return chatStateRepository.save(newChatState);
         });
-        if (!chatStateRepository.existsById(chatId)) {
-            ChatState newChatState = new ChatState();
-            newChatState.setChatId(chatId);
-            newChatState.setBotState(BotState.INITIAL);
-            chatStateRepository.save(newChatState);
-        }
         if (message.hasText()) {
             String messageText = message.getText();
             String[] splittedText = messageText.split(" ");

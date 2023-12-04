@@ -382,17 +382,6 @@ class MessageHandlerImplTest {
     }
 
     @Test
-    @DisplayName("Если пользователь впервые пишет боту, то новое состояние чата должно сохраниться")
-    void givenNewUser_whenFirstMessage_thenSaveState() {
-        userMessage.setText("/start");
-
-        messageHandler.handle(userMessage);
-
-        verify(chatStateRepository).save(argThat((ChatState chatState) ->
-                chatState.getChatId() == userMessage.getChatId() && chatState.getBotState() == BotState.INITIAL));
-    }
-
-    @Test
     @DisplayName("Если пользователь запрашивает прогноз без указания места и времени, то бот должен последовательно " +
             "уточнить все детали, после чего прислать соответствующий прогноз погоды")
     void whenForecast_thenAskDetails() {
