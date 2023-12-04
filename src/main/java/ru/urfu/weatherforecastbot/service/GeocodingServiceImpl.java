@@ -19,7 +19,7 @@ public class GeocodingServiceImpl implements GeocodingService {
     /**
      * URL API для поиска мест
      */
-    private final String BASE_URL = "https://geocoding-api.open-meteo.com/v1/search";
+    private static final String BASE_URL = "https://geocoding-api.open-meteo.com/v1/search";
     /**
      * JSON маппер
      */
@@ -53,7 +53,7 @@ public class GeocodingServiceImpl implements GeocodingService {
                     try {
                         place = mapper.treeToValue(node, Place.class);
                     } catch (JsonProcessingException e) {
-                        logger.error(e.getMessage());
+                        logger.error(e.getMessage(), e);
                     }
                     return Optional.ofNullable(place);
                 })

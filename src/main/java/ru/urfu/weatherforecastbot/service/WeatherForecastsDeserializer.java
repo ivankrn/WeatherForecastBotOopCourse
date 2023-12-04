@@ -21,7 +21,7 @@ public class WeatherForecastsDeserializer {
     /**
      * Сообщение исключения
      */
-    private final String EXCEPTION_MESSAGE = "Wrong json provided: ";
+    private final static String EXCEPTION_MESSAGE = "Wrong json provided: ";
 
     /**
      * Преобразует ответ сервера в список прогнозов погоды

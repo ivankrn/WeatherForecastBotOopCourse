@@ -10,7 +10,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-public class WeatherForecastFormatterImpl implements WeatherForecastFormatter {
+/**
+ * Форматировщик прогноза погоды в удобочитаемый вид
+ */
+public class WeatherForecastFormatterImpl {
 
     /**
      * Форматировщик времени для форматирования по часам
@@ -23,13 +26,31 @@ public class WeatherForecastFormatterImpl implements WeatherForecastFormatter {
     /**
      * Сообщение исключения при пустом списке прогнозов
      */
-    private final String EMPTY_FORECASTS_EXCEPTION_MESSAGE = "Forecasts are empty!";
+    private static final String EMPTY_FORECASTS_EXCEPTION_MESSAGE = "Forecasts are empty!";
     /**
      * Сообщение исключения при прогнозах, не относящихся к одному месту
      */
-    private final String FORECASTS_WITH_DIFFERENT_PLACES_EXCEPTION_MESSAGE = "Forecasts have different places!";
+    private static final String FORECASTS_WITH_DIFFERENT_PLACES_EXCEPTION_MESSAGE = "Forecasts have different places!";
+    /**
+     * Интервал (в часах) форматирования на неделю
+     */
+    private static final int HOUR_INTERVAL = 4;
+    /**
+     * Значок термометра
+     */
+    private static final String THERMOMETER_EMOJI = "\uD83C\uDF21️";
+    /**
+     * Символ градусов цельсия
+     */
+    private static final String CELSIUS_SYMBOL = "°C";
 
-    @Override
+    /**
+     * Форматирует прогнозы погоды на сегодня
+     *
+     * @param forecasts список прогнозов погоды на сегодня
+     * @return прогнозы погоды на сегодня в виде строки
+     * @throws IllegalArgumentException если список прогнозов погоды пуст или содержит прогнозы с разными местами
+     */
     public String formatTodayForecast(List<WeatherForecast> forecasts) throws IllegalArgumentException {
         if (forecasts.isEmpty()) {
             throw new IllegalArgumentException(EMPTY_FORECASTS_EXCEPTION_MESSAGE);
@@ -38,11 +59,17 @@ public class WeatherForecastFormatterImpl implements WeatherForecastFormatter {
             throw new IllegalArgumentException(FORECASTS_WITH_DIFFERENT_PLACES_EXCEPTION_MESSAGE);
         }
         String placeName = forecasts.get(0).place().name();
-        return "\uD83C\uDF21️ Прогноз погоды на сегодня (%s):\n\n%s"
+        return THERMOMETER_EMOJI + " Прогноз погоды на сегодня (%s):\n\n%s"
                 .formatted(placeName, formatWeatherForecasts(forecasts));
     }
 
-    @Override
+    /**
+     * Форматирует прогнозы погоды на неделю вперед каждые 4 часа
+     *
+     * @param forecasts список прогнозов погоды на неделю вперед
+     * @return прогнозы погоды на неделю вперед в виде строки
+     * @throws IllegalArgumentException если список прогнозов погоды пуст или содержит прогнозы с разными местами
+     */
     public String formatWeekForecast(List<WeatherForecast> forecasts) throws IllegalArgumentException {
         if (forecasts.isEmpty()) {
             throw new IllegalArgumentException(EMPTY_FORECASTS_EXCEPTION_MESSAGE);
@@ -56,16 +83,16 @@ public class WeatherForecastFormatterImpl implements WeatherForecastFormatter {
         List<LocalDate> sortedDates = new ArrayList<>(forecastsByDate.keySet());
         Collections.sort(sortedDates);
 
-        int hourInterval = 4;
         String placeName = forecasts.get(0).place().name();
-        StringBuilder sb = new StringBuilder("\uD83C\uDF21️ Прогноз погоды на неделю вперед (%s):".formatted(placeName));
+        StringBuilder sb = new StringBuilder(THERMOMETER_EMOJI +
+                " Прогноз погоды на неделю вперед (%s):".formatted(placeName));
 
         for (LocalDate date : sortedDates) {
             sb.append("\n\n").append(weekDateFormatter.format(date)).append(":\n");
 
             List<WeatherForecast> dateForecasts = forecastsByDate.get(date);
             String formattedForecasts = formatWeatherForecasts(dateForecasts.stream()
-                    .filter(weatherForecast -> weatherForecast.dateTime().getHour() % hourInterval == 0)
+                    .filter(weatherForecast -> weatherForecast.dateTime().getHour() % HOUR_INTERVAL == 0)
                     .toList());
 
             sb.append(formattedForecasts);
@@ -82,8 +109,8 @@ public class WeatherForecastFormatterImpl implements WeatherForecastFormatter {
      */
     private String formatWeatherForecast(WeatherForecast forecast) {
         String sb = timeFormatter.format(forecast.dateTime()) + ": " +
-                forecast.temperature() + "°C" +
-                " (по ощущению " + forecast.feelsLikeTemperature() + "°C)";
+                forecast.temperature() + CELSIUS_SYMBOL +
+                " (по ощущению " + forecast.feelsLikeTemperature() + CELSIUS_SYMBOL + ")";
         return sb;
     }
 

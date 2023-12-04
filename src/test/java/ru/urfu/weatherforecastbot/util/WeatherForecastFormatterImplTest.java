@@ -20,7 +20,7 @@ class WeatherForecastFormatterImplTest {
     /**
      * Форматировщик прогноза погоды в удобочитаемый вид
      */
-    private final WeatherForecastFormatter formatter = new WeatherForecastFormatterImpl();
+    private final WeatherForecastFormatterImpl formatter = new WeatherForecastFormatterImpl();
 
     @Test
     @DisplayName("При непустом прогнозе погоды на сегодня должен возвращать отформатированный прогноз погоды")
