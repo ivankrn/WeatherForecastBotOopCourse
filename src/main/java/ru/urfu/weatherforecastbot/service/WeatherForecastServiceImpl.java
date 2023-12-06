@@ -18,7 +18,7 @@ public class WeatherForecastServiceImpl implements WeatherForecastService {
     /**
      * URL API для получения прогнозов погоды
      */
-    private final String BASE_URL = "https://api.open-meteo.com/v1/forecast";
+    private static final String BASE_URL = "https://api.open-meteo.com/v1/forecast";
     /**
      * Сервис для поиска мест
      */
@@ -61,7 +61,7 @@ public class WeatherForecastServiceImpl implements WeatherForecastService {
                         .build())
                 .retrieve()
                 .bodyToMono(JsonNode.class)
-                .map(weatherForecastsDeserializer::parseJsonResponseToWeatherForecasts)
+                .map(response -> weatherForecastsDeserializer.parseJsonResponseToWeatherForecasts(place.get(), response))
                 .block();
     }
 

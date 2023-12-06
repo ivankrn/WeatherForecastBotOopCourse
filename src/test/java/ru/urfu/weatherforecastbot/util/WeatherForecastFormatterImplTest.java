@@ -2,6 +2,7 @@ package ru.urfu.weatherforecastbot.util;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import ru.urfu.weatherforecastbot.model.Place;
 import ru.urfu.weatherforecastbot.model.WeatherForecast;
 
 import java.time.LocalDateTime;
@@ -9,6 +10,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
  * Тесты форматировщика прогнозов погоды
@@ -18,7 +20,7 @@ class WeatherForecastFormatterImplTest {
     /**
      * Форматировщик прогноза погоды в удобочитаемый вид
      */
-    private final WeatherForecastFormatter formatter = new WeatherForecastFormatterImpl();
+    private final WeatherForecastFormatterImpl formatter = new WeatherForecastFormatterImpl();
 
     @Test
     @DisplayName("При непустом прогнозе погоды на сегодня должен возвращать отформатированный прогноз погоды")
@@ -26,12 +28,13 @@ class WeatherForecastFormatterImplTest {
         LocalDateTime today = LocalDateTime.of(2023, 11, 5, 0, 0);
         int hours = 24;
         List<WeatherForecast> todayForecast = new ArrayList<>(hours);
+        Place place = new Place("Екатеринбург", 56.875, 60.625, "Asia/Yekaterinburg");
         for (int hour = 0; hour < hours; hour++) {
             todayForecast.add(
-                    new WeatherForecast(today.withHour(hour), 0, 0));
+                    new WeatherForecast(place, today.withHour(hour), 0, 0));
         }
         String expected = """
-                \uD83C\uDF21️ Прогноз погоды на сегодня:
+                \uD83C\uDF21️ Прогноз погоды на сегодня (Екатеринбург):
 
                 00-00: 0.0°C (по ощущению 0.0°C)
                 01-00: 0.0°C (по ощущению 0.0°C)
@@ -64,14 +67,40 @@ class WeatherForecastFormatterImplTest {
     }
 
     @Test
-    @DisplayName("При пустом прогнозе погоды на сегодня должен возвращать только заголовок прогноза погоды")
-    void givenTodayEmptyForecast_whenFormatTodayForecast_thenReturnOnlyHeader() {
+    @DisplayName("При пустом прогнозе погоды на сегодня должен выбрасывать исключение с сообщением о том, что список " +
+            "прогнозов пуст")
+    void givenTodayEmptyForecast_whenFormatTodayForecast_thenThrowException() {
         List<WeatherForecast> todayForecast = List.of();
-        String expected = "\uD83C\uDF21️ Прогноз погоды на сегодня:\n\n";
 
-        String actual = formatter.formatTodayForecast(todayForecast);
+        Exception exception = assertThrows(IllegalArgumentException.class,
+                () -> formatter.formatTodayForecast(todayForecast));
 
-        assertEquals(expected, actual);
+        assertEquals("Forecasts are empty!", exception.getMessage());
+    }
+
+    @Test
+    @DisplayName("При прогнозе погоды на сегодня с различными местами должен выбрасывать исключение с сообщением о том, " +
+            "что прогнозы относятся не к одному месту")
+    void givenTodayForecastWithDifferentPlaces_whenFormatTodayForecast_thenThrowException() {
+        LocalDateTime today = LocalDateTime.of(2023, 11, 5, 0, 0);
+        int hours = 24;
+        List<WeatherForecast> todayForecast = new ArrayList<>(hours);
+        Place ekaterinburg =
+                new Place("Екатеринбург", 56.875, 60.625, "Asia/Yekaterinburg");
+        Place moscow = new Place("Москва", 55.752, 37.615, "Europe/Moscow");
+        for (int hour = 0; hour < hours; hour++) {
+            todayForecast.add(
+                    new WeatherForecast(
+                            hour % 2 == 0 ? ekaterinburg : moscow,
+                            today.withHour(hour),
+                            0,
+                            0)
+            );
+        }
+        Exception exception = assertThrows(IllegalArgumentException.class,
+                () -> formatter.formatTodayForecast(todayForecast));
+
+        assertEquals("Forecasts have different places!", exception.getMessage());
     }
 
     @Test
@@ -81,14 +110,15 @@ class WeatherForecastFormatterImplTest {
         int days = 7;
         int hourInterval = 4;
         List<WeatherForecast> weekForecast = new ArrayList<>();
+        Place place = new Place("Екатеринбург", 56.875, 60.625, "Asia/Yekaterinburg");
         for (int day = 0; day < days; day++) {
             for (int hour = 0; hour < 24; hour += hourInterval) {
                 weekForecast.add(
-                        new WeatherForecast(today.plusDays(day).withHour(hour), 0, 0));
+                        new WeatherForecast(place, today.plusDays(day).withHour(hour), 0, 0));
             }
         }
         String expected = """
-                \uD83C\uDF21️ Прогноз погоды на неделю вперед:
+                \uD83C\uDF21️ Прогноз погоды на неделю вперед (Екатеринбург):
 
                 12.11.2023:
                 00-00: 0.0°C (по ощущению 0.0°C)
@@ -152,13 +182,43 @@ class WeatherForecastFormatterImplTest {
     }
 
     @Test
-    @DisplayName("При пустом прогнозе погоды на неделю вперед должен возвращать только заголовок прогноза погоды")
-    void givenWeekEmptyForecast_whenFormatWeekForecast_thenReturnOnlyHeader() {
+    @DisplayName("При пустом прогнозе погоды на неделю вперед должен выбрасывать исключение с сообщением о " +
+            "том, что список прогнозов пуст")
+    void givenWeekEmptyForecast_whenFormatWeekForecast_thenThrowException() {
         List<WeatherForecast> weekForecast = List.of();
-        String expected = "\uD83C\uDF21️ Прогноз погоды на неделю вперед:";
 
-        String actual = formatter.formatWeekForecast(weekForecast);
+        Exception exception = assertThrows(IllegalArgumentException.class,
+                () -> formatter.formatTodayForecast(weekForecast));
 
-        assertEquals(expected, actual);
+        assertEquals("Forecasts are empty!", exception.getMessage());
+    }
+
+    @Test
+    @DisplayName("При прогнозе погоды на неделю вперед с различными местами должен выбрасывать исключение с сообщением " +
+            "о том, что прогнозы относятся не к одному месту")
+    void givenWeekForecastWithDifferentPlaces_whenFormatWeekForecast_thenThrowException() {
+        LocalDateTime today = LocalDateTime.of(2023, 11, 12, 0, 0);
+        int days = 7;
+        int hourInterval = 4;
+        List<WeatherForecast> weekForecast = new ArrayList<>();
+        Place ekaterinburg =
+                new Place("Екатеринбург", 56.875, 60.625, "Asia/Yekaterinburg");
+        Place moscow = new Place("Москва", 55.752, 37.615, "Europe/Moscow");
+        for (int day = 0; day < days; day++) {
+            for (int hour = 0; hour < 24; hour += hourInterval) {
+                weekForecast.add(
+                        new WeatherForecast(
+                                day % 2 == 0 ? ekaterinburg : moscow,
+                                today.plusDays(day).withHour(hour),
+                                0,
+                                0)
+                );
+            }
+        }
+
+        Exception exception = assertThrows(IllegalArgumentException.class,
+                () -> formatter.formatTodayForecast(weekForecast));
+
+        assertEquals("Forecasts have different places!", exception.getMessage());
     }
 }
