@@ -62,7 +62,7 @@ class ReminderFormatterImplTest {
      * </ul>
      */
     @Test
-    @DisplayName("При непустом списке напоминаний должен возвращать список напоминаний в виде строки")
+    @DisplayName("При пустом списке напоминаний должен возвращать список напоминаний в виде строки")
     void givenEmptyReminders_whenFormatReminders_thenReturnEmptyString() {
         List<Reminder> reminders = List.of();
 
