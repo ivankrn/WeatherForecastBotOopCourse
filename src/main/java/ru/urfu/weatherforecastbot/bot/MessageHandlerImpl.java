@@ -244,9 +244,9 @@ public class MessageHandlerImpl implements MessageHandler {
         InlineKeyboardButton forecastButton = new InlineKeyboardButton(BotConstants.FORECAST_BUTTON_TEXT);
         forecastButton.setCallbackData(BotConstants.FORECAST_BUTTON_TEXT);
         InlineKeyboardButton helpButton = new InlineKeyboardButton(BotConstants.HELP_BUTTON_TEXT);
-        helpButton.setCallbackData(BotCommands.COMMAND_HELP);
+        helpButton.setCallbackData(BotConstants.COMMAND_HELP);
         InlineKeyboardButton cancelButton = new InlineKeyboardButton(BotConstants.CANCEL_BUTTON_TEXT);
-        cancelButton.setCallbackData(BotCommands.COMMAND_CANCEL);
+        cancelButton.setCallbackData(BotConstants.COMMAND_CANCEL);
         List<InlineKeyboardButton> firstRow = List.of(forecastButton);
         List<InlineKeyboardButton> secondRow = List.of(helpButton, cancelButton);
         List<List<InlineKeyboardButton>> keyboard = List.of(firstRow, secondRow);
@@ -262,7 +262,7 @@ public class MessageHandlerImpl implements MessageHandler {
     private InlineKeyboardMarkup getCancelReplyMarkup() {
         InlineKeyboardMarkup cancelMarkup = new InlineKeyboardMarkup();
         InlineKeyboardButton cancelButton = new InlineKeyboardButton(BotConstants.CANCEL_BUTTON_TEXT);
-        cancelButton.setCallbackData(BotCommands.COMMAND_CANCEL);
+        cancelButton.setCallbackData(BotConstants.COMMAND_CANCEL);
         List<InlineKeyboardButton> buttons = List.of(cancelButton);
         List<List<InlineKeyboardButton>> keyboard = List.of(buttons);
         cancelMarkup.setKeyboard(keyboard);
@@ -283,7 +283,7 @@ public class MessageHandlerImpl implements MessageHandler {
         InlineKeyboardButton weekButton = new InlineKeyboardButton(BotConstants.WEEK);
         weekButton.setCallbackData(BotConstants.WEEK);
         InlineKeyboardButton cancelButton = new InlineKeyboardButton(BotConstants.CANCEL_BUTTON_TEXT);
-        cancelButton.setCallbackData(BotCommands.COMMAND_CANCEL);
+        cancelButton.setCallbackData(BotConstants.COMMAND_CANCEL);
         List<InlineKeyboardButton> firstRow = List.of(todayButton, tomorrowButton, weekButton);
         List<InlineKeyboardButton> secondRow = List.of(cancelButton);
         List<List<InlineKeyboardButton>> keyboard = List.of(firstRow, secondRow);
