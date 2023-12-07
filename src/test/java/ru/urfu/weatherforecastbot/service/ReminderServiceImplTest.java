@@ -19,6 +19,7 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -149,9 +150,9 @@ class ReminderServiceImplTest {
         verify(bot).executeMessageWithLogging(argThat((SendMessage message) ->
                 message.getText().equals(expectedNizhnyNovgorodForecast)));
 
-        Exception exception = assertThrows(IllegalArgumentException.class,
+        Exception exception = assertThrows(DateTimeParseException.class,
                 () -> reminderService.addReminder(chatId, "Прага", "abc"));
-        assertEquals("Wrong time provided!", exception.getMessage());
+        assertEquals("Text 'abc' could not be parsed at index 0", exception.getMessage());
     }
 
     /**
@@ -196,4 +197,31 @@ class ReminderServiceImplTest {
         assertEquals("Wrong reminder position provided!", exception.getMessage());
     }
 
+    /**
+     * Проверяет корректное редактирование существующего напоминания пользователя.<br>
+     * Проверки:
+     * <ul>
+     *     <li>Если пользователь вызывает метод редактирования напоминания,
+     *     то соответствующее напоминание должно быть изменено.</li>
+     * </ul>
+     */
+    @Test
+    @DisplayName("Тест редактирования напоминания")
+    void testEditReminder() {
+        long chatId = 1L;
+        Reminder reminder = new Reminder();
+        reminder.setId(1L);
+        reminder.setChatId(chatId);
+        reminder.setPlaceName("Екатеринбург");
+        reminder.setTime(LocalTime.of(5, 0));
+        when(reminderRepository.findAllByChatId(chatId)).thenReturn(List.of(reminder));
+        when(reminderRepository.save(any())).thenReturn(reminder);
+        reminderService.addReminder(chatId, "Екатеринбург", "05:00");
+
+        reminderService.editReminderByRelativePosition(chatId, 1, "Москва", "10:00");
+
+        assertEquals(chatId, reminder.getChatId());
+        assertEquals("Москва", reminder.getPlaceName());
+        assertEquals(LocalTime.of(10, 0), reminder.getTime());
+    }
 }

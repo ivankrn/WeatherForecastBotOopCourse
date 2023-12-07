@@ -9,11 +9,14 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKe
 import ru.urfu.weatherforecastbot.database.ChatStateRepository;
 import ru.urfu.weatherforecastbot.model.BotState;
 import ru.urfu.weatherforecastbot.model.ChatState;
+import ru.urfu.weatherforecastbot.model.Reminder;
 import ru.urfu.weatherforecastbot.model.WeatherForecast;
 import ru.urfu.weatherforecastbot.service.ReminderService;
 import ru.urfu.weatherforecastbot.service.WeatherForecastService;
+import ru.urfu.weatherforecastbot.util.ReminderFormatterImpl;
 import ru.urfu.weatherforecastbot.util.WeatherForecastFormatterImpl;
 
+import java.time.format.DateTimeParseException;
 import java.util.List;
 
 @Component
@@ -35,14 +38,19 @@ public class MessageHandlerImpl implements MessageHandler {
      * Сервис для управления напоминаниями
      */
     private final ReminderService reminderService;
+    /**
+     * Форматировщик напоминаний в удобочитаемый вид
+     */
+    private final ReminderFormatterImpl reminderFormatter;
 
     /**
      * Создает экземпляр MessageHandlerImpl, используя в качестве {@link MessageHandlerImpl#forecastFormatter
-     * forecastFormatter} {@link WeatherForecastFormatterImpl}
+     * forecastFormatter} {@link WeatherForecastFormatterImpl} и в качестве {@link MessageHandlerImpl#reminderFormatter}
+     * {@link ReminderFormatterImpl}
      *
-     * @param weatherService сервис для получения прогнозов погоды
+     * @param weatherService      сервис для получения прогнозов погоды
      * @param chatStateRepository репозиторий состояний чатов
-     * @param reminderService сервис управления напоминаниями
+     * @param reminderService     сервис управления напоминаниями
      */
     @Autowired
     public MessageHandlerImpl(WeatherForecastService weatherService, ChatStateRepository chatStateRepository,
@@ -51,23 +59,26 @@ public class MessageHandlerImpl implements MessageHandler {
         forecastFormatter = new WeatherForecastFormatterImpl();
         this.chatStateRepository = chatStateRepository;
         this.reminderService = reminderService;
+        reminderFormatter = new ReminderFormatterImpl();
     }
 
     /**
      * Создает экземпляр MessageHandlerImpl, используя переданные аргументы
      *
-     * @param weatherService    сервис для получения прогнозов погоды
-     * @param forecastFormatter форматировщик прогноза погоды в удобочитаемый вид
+     * @param weatherService      сервис для получения прогнозов погоды
+     * @param forecastFormatter   формировщик прогноза погоды в вид для чтения
      * @param chatStateRepository репозиторий состояний чатов
-     * @param reminderService сервис управления напоминаниями
+     * @param reminderService     сервис управления напоминаниями
+     * @param reminderFormatter   формировщик напоминаний
      */
     public MessageHandlerImpl(WeatherForecastService weatherService,
                               WeatherForecastFormatterImpl forecastFormatter, ChatStateRepository chatStateRepository,
-                              ReminderService reminderService) {
+                              ReminderService reminderService, ReminderFormatterImpl reminderFormatter) {
         this.weatherService = weatherService;
         this.forecastFormatter = forecastFormatter;
         this.chatStateRepository = chatStateRepository;
         this.reminderService = reminderService;
+        this.reminderFormatter = reminderFormatter;
     }
 
     @Override
@@ -128,12 +139,25 @@ public class MessageHandlerImpl implements MessageHandler {
                         responseMessage.setText(handleNewSubscription(chatId, place, time));
                     }
                 }
-                case BotConstants.COMMAND_DEL_SUBSCRIPTION ->  {
+                case BotConstants.COMMAND_SHOW_SUBSCRIPTIONS ->
+                        responseMessage.setText(handleShowSubscriptions(chatId));
+                case BotConstants.COMMAND_DEL_SUBSCRIPTION -> {
                     if (splittedText.length < 2) {
                         return handleNonCommand(chatId, command);
                     } else {
                         String position = splittedText[1];
                         responseMessage.setText(handleDeleteSubscription(chatId, position));
+                    }
+                }
+                case BotConstants.COMMAND_EDIT_SUBSCRIPTION -> {
+                    if (splittedText.length < 4) {
+                        responseMessage.setText("Укажите все необходимые параметры для редактирования. " +
+                                "Введите /help, чтобы просмотреть инструкцию.");
+                    } else {
+                        String position = splittedText[1];
+                        String place = splittedText[2];
+                        String time = splittedText[3];
+                        responseMessage.setText(handleEditSubscription(chatId, position, place, time));
                     }
                 }
                 default -> {
@@ -357,9 +381,9 @@ public class MessageHandlerImpl implements MessageHandler {
     /**
      * Обрабатывает запрос на добавление напоминания и возвращает ответ в виде строки
      *
-     * @param chatId ID чата
+     * @param chatId    ID чата
      * @param placeName название места
-     * @param time время в виде строки (в UTC)
+     * @param time      время в виде строки (в UTC)
      * @return ответ в виде строки
      */
     private String handleNewSubscription(long chatId, String placeName, String time) {
@@ -372,9 +396,49 @@ public class MessageHandlerImpl implements MessageHandler {
     }
 
     /**
-     * Обрабатывает запрос на удаление напоминания и возвращает ответ в виде строки
+     * Обработка запроса для отображения списка напоминаний и возвращение строкового ответа
      *
      * @param chatId ID чата
+     * @return строковый ответ
+     */
+    private String handleShowSubscriptions(long chatId) {
+        List<Reminder> reminders = reminderService.findAllForChatId(chatId);
+        if (reminders.isEmpty()) {
+            return BotConstants.NO_REMINDERS;
+        }
+        return reminderFormatter.formatReminders(reminders);
+    }
+
+    /**
+     * Обработка запроса для изменения напоминания и возвращение строкового ответа
+     *
+     * @param chatId       ID чата
+     * @param position     относительная позиция напоминания в списке
+     * @param newPlaceName новое название места
+     * @param newTime      новое время в виде строки (в виде стандарта UTC)
+     * @return строковый ответ
+     */
+    private String handleEditSubscription(long chatId, String position, String newPlaceName, String newTime) {
+        try {
+            reminderService.editReminderByRelativePosition(
+                    chatId,
+                    Integer.parseInt(position),
+                    newPlaceName,
+                    newTime);
+        } catch (NumberFormatException e) {
+            return BotConstants.NOT_A_NUMBER_REMINDER_POSITION;
+        } catch (DateTimeParseException e) {
+            return BotConstants.WRONG_REMINDER_TIME;
+        } catch (IllegalArgumentException e) {
+            return BotConstants.NO_REMINDER_WITH_POSITION;
+        }
+        return BotConstants.EDITED_SUBSCRIPTION + " " + newTime;
+    }
+
+    /**
+     * Обрабатывает запрос на удаление напоминания и возвращает ответ в виде строки
+     *
+     * @param chatId   ID чата
      * @param position относительная позиция напоминания в списке
      * @return ответ в виде строки
      */

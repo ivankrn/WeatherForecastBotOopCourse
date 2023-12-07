@@ -58,10 +58,6 @@ public class ReminderServiceImpl implements ReminderService {
      */
     private final Map<Long, ScheduledFuture<?>> scheduledTasks = new HashMap<>();
     /**
-     * Сообщение исключения о неверном формате времени
-     */
-    private static final String WRONG_TIME_EXCEPTION_MESSAGE = "Wrong time provided!";
-    /**
      * Сообщение исключения о неверной позиции при удалении напоминания
      */
     private static final String WRONG_REMINDER_POSITION_EXCEPTION_MESSAGE = "Wrong reminder position provided!";
@@ -105,18 +101,40 @@ public class ReminderServiceImpl implements ReminderService {
     }
 
     @Override
-    public void addReminder(long chatId, String placeName, String time) throws IllegalArgumentException {
-        try {
-            LocalTime parsedTime = LocalTime.parse(time, dateTimeFormatter);
-            Reminder reminder = new Reminder();
-            reminder.setChatId(chatId);
-            reminder.setPlaceName(placeName);
-            reminder.setTime(parsedTime);
-            reminder = reminderRepository.save(reminder);
-            scheduleReminder(reminder);
-        } catch (DateTimeParseException e) {
-            throw new IllegalArgumentException(WRONG_TIME_EXCEPTION_MESSAGE, e);
+    public List<Reminder> findAllForChatId(long chatId) {
+        return reminderRepository.findAllByChatId(chatId);
+    }
+
+    @Override
+    public void addReminder(long chatId, String placeName, String time) throws DateTimeParseException {
+        LocalTime parsedTime = LocalTime.parse(time, dateTimeFormatter);
+        Reminder reminder = new Reminder();
+
+        reminder.setChatId(chatId);
+        reminder.setPlaceName(placeName);
+        reminder.setTime(parsedTime);
+
+        reminder = reminderRepository.save(reminder);
+        scheduleReminder(reminder);
+    }
+
+    @Override
+    public void editReminderByRelativePosition(long chatId, int position, String newPlaceName, String newTime)
+            throws DateTimeParseException, IllegalArgumentException {
+        List<Reminder> reminders = reminderRepository.findAllByChatId(chatId);
+
+        if (position <= 0 || position < reminders.size() || position > reminders.size()) {
+            throw new IllegalArgumentException(WRONG_REMINDER_POSITION_EXCEPTION_MESSAGE);
         }
+
+        LocalTime parsedTime = LocalTime.parse(newTime, dateTimeFormatter);
+        Reminder reminderToEdit = reminders.get(position - 1);
+
+        cancelReminderById(reminderToEdit.getId());
+        reminderToEdit.setPlaceName(newPlaceName);
+        reminderToEdit.setTime(parsedTime);
+        reminderToEdit = reminderRepository.save(reminderToEdit);
+        scheduleReminder(reminderToEdit);
     }
 
     @Override
