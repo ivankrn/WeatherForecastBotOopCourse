@@ -10,6 +10,7 @@ import ru.urfu.weatherforecastbot.database.ChatStateRepository;
 import ru.urfu.weatherforecastbot.model.BotState;
 import ru.urfu.weatherforecastbot.model.ChatState;
 import ru.urfu.weatherforecastbot.model.WeatherForecast;
+import ru.urfu.weatherforecastbot.service.ReminderService;
 import ru.urfu.weatherforecastbot.service.WeatherForecastService;
 import ru.urfu.weatherforecastbot.util.WeatherForecastFormatterImpl;
 
@@ -30,6 +31,10 @@ public class MessageHandlerImpl implements MessageHandler {
      * Репозиторий состояний чатов
      */
     private final ChatStateRepository chatStateRepository;
+    /**
+     * Сервис для управления напоминаниями
+     */
+    private final ReminderService reminderService;
 
     /**
      * Создает экземпляр MessageHandlerImpl, используя в качестве {@link MessageHandlerImpl#forecastFormatter
@@ -37,12 +42,15 @@ public class MessageHandlerImpl implements MessageHandler {
      *
      * @param weatherService сервис для получения прогнозов погоды
      * @param chatStateRepository репозиторий состояний чатов
+     * @param reminderService сервис управления напоминаниями
      */
     @Autowired
-    public MessageHandlerImpl(WeatherForecastService weatherService, ChatStateRepository chatStateRepository) {
+    public MessageHandlerImpl(WeatherForecastService weatherService, ChatStateRepository chatStateRepository,
+                              ReminderService reminderService) {
         this.weatherService = weatherService;
         forecastFormatter = new WeatherForecastFormatterImpl();
         this.chatStateRepository = chatStateRepository;
+        this.reminderService = reminderService;
     }
 
     /**
@@ -51,12 +59,15 @@ public class MessageHandlerImpl implements MessageHandler {
      * @param weatherService    сервис для получения прогнозов погоды
      * @param forecastFormatter форматировщик прогноза погоды в удобочитаемый вид
      * @param chatStateRepository репозиторий состояний чатов
+     * @param reminderService сервис управления напоминаниями
      */
     public MessageHandlerImpl(WeatherForecastService weatherService,
-                              WeatherForecastFormatterImpl forecastFormatter, ChatStateRepository chatStateRepository) {
+                              WeatherForecastFormatterImpl forecastFormatter, ChatStateRepository chatStateRepository,
+                              ReminderService reminderService) {
         this.weatherService = weatherService;
         this.forecastFormatter = forecastFormatter;
         this.chatStateRepository = chatStateRepository;
+        this.reminderService = reminderService;
     }
 
     @Override
@@ -78,7 +89,7 @@ public class MessageHandlerImpl implements MessageHandler {
                 case BotConstants.COMMAND_START -> {
                     chatState.setBotState(BotState.INITIAL);
                     chatState.setPlaceName(null);
-                    chatState.setTimePeriod(null);
+                    chatState.setTime(null);
                     chatStateRepository.save(chatState);
                     responseMessage.setText(BotConstants.START_TEXT);
                     responseMessage.setReplyMarkup(getMainMenuReplyMarkup());
@@ -87,7 +98,7 @@ public class MessageHandlerImpl implements MessageHandler {
                 case BotConstants.COMMAND_CANCEL -> {
                     chatState.setBotState(BotState.INITIAL);
                     chatState.setPlaceName(null);
-                    chatState.setTimePeriod(null);
+                    chatState.setTime(null);
                     chatStateRepository.save(chatState);
                     responseMessage.setText("Вы вернулись в основное меню");
                     responseMessage.setReplyMarkup(getMainMenuReplyMarkup());
@@ -106,6 +117,23 @@ public class MessageHandlerImpl implements MessageHandler {
                     } else {
                         String place = message.getText().substring(message.getText().indexOf(" ") + 1);
                         responseMessage.setText(handleWeekForecasts(place));
+                    }
+                }
+                case BotConstants.COMMAND_SUBSCRIBE -> {
+                    if (splittedText.length < 3) {
+                        return handleNonCommand(chatId, command);
+                    } else {
+                        String place = splittedText[1];
+                        String time = splittedText[2];
+                        responseMessage.setText(handleNewSubscription(chatId, place, time));
+                    }
+                }
+                case BotConstants.COMMAND_DEL_SUBSCRIPTION ->  {
+                    if (splittedText.length < 2) {
+                        return handleNonCommand(chatId, command);
+                    } else {
+                        String position = splittedText[1];
+                        responseMessage.setText(handleDeleteSubscription(chatId, position));
                     }
                 }
                 default -> {
@@ -133,26 +161,39 @@ public class MessageHandlerImpl implements MessageHandler {
         BotState currentBotState = chatState.getBotState();
         switch (currentBotState) {
             case INITIAL -> {
-                if (text.equals(BotConstants.FORECAST_BUTTON_TEXT)
-                        || text.equals(BotConstants.COMMAND_FORECAST_TODAY)
-                        || text.equals(BotConstants.COMMAND_FORECAST_WEEK)) {
-                    chatState.setBotState(BotState.WAITING_FOR_PLACE_NAME);
-                    if (text.equals(BotConstants.COMMAND_FORECAST_TODAY)) {
-                        chatState.setTimePeriod(BotConstants.TODAY);
-                    } else if (text.equals(BotConstants.COMMAND_FORECAST_WEEK)) {
-                        chatState.setTimePeriod(BotConstants.WEEK);
+                switch (text) {
+                    case BotConstants.FORECAST_BUTTON_TEXT,
+                            BotConstants.COMMAND_FORECAST_TODAY,
+                            BotConstants.COMMAND_FORECAST_WEEK -> {
+                        chatState.setBotState(BotState.WAITING_FOR_FORECAST_PLACE_NAME);
+                        if (text.equals(BotConstants.COMMAND_FORECAST_TODAY)) {
+                            chatState.setTime(BotConstants.TODAY);
+                        } else if (text.equals(BotConstants.COMMAND_FORECAST_WEEK)) {
+                            chatState.setTime(BotConstants.WEEK);
+                        }
+                        chatStateRepository.save(chatState);
+                        responseMessage.setText("Введите название места");
+                        responseMessage.setReplyMarkup(getCancelReplyMarkup());
                     }
-                    chatStateRepository.save(chatState);
-                    responseMessage.setText("Введите название места");
-                    responseMessage.setReplyMarkup(getCancelReplyMarkup());
-                } else {
-                    responseMessage.setText(BotConstants.UNKNOWN_COMMAND);
+                    case BotConstants.COMMAND_SUBSCRIBE -> {
+                        chatState.setBotState(BotState.WAITING_FOR_REMINDER_PLACE_NAME);
+                        chatStateRepository.save(chatState);
+                        responseMessage.setText("Введите название места, для которого будут присылаться напоминания");
+                        responseMessage.setReplyMarkup(getCancelReplyMarkup());
+                    }
+                    case BotConstants.COMMAND_DEL_SUBSCRIPTION -> {
+                        chatState.setBotState(BotState.WAITING_FOR_REMINDER_POSITION_TO_DELETE);
+                        chatStateRepository.save(chatState);
+                        responseMessage.setText("Введите номер напоминания, которое надо удалить");
+                        responseMessage.setReplyMarkup(getCancelReplyMarkup());
+                    }
+                    default -> responseMessage.setText(BotConstants.UNKNOWN_COMMAND);
                 }
             }
-            case WAITING_FOR_PLACE_NAME -> {
+            case WAITING_FOR_FORECAST_PLACE_NAME -> {
                 chatState.setPlaceName(text);
-                if (chatState.getTimePeriod().isPresent()) {
-                    String timePeriod = chatState.getTimePeriod().get();
+                if (chatState.getTime().isPresent()) {
+                    String timePeriod = chatState.getTime().get();
                     if (timePeriod.equals(BotConstants.TODAY)) {
                         responseMessage.setText(handleTodayForecasts(chatState.getPlaceName()));
                     } else if (timePeriod.equals(BotConstants.WEEK)) {
@@ -160,15 +201,15 @@ public class MessageHandlerImpl implements MessageHandler {
                     }
                     chatState.setBotState(BotState.INITIAL);
                     chatState.setPlaceName(null);
-                    chatState.setTimePeriod(null);
+                    chatState.setTime(null);
                 } else {
-                    chatState.setBotState(BotState.WAITING_FOR_TIME_PERIOD);
+                    chatState.setBotState(BotState.WAITING_FOR_FORECAST_TIME_PERIOD);
                     responseMessage.setText("Выберите временной период для просмотра (сегодня, завтра, неделя)");
                     responseMessage.setReplyMarkup(getTimePeriodMenuReplyMarkup());
                 }
                 chatStateRepository.save(chatState);
             }
-            case WAITING_FOR_TIME_PERIOD -> {
+            case WAITING_FOR_FORECAST_TIME_PERIOD -> {
                 if (text.equalsIgnoreCase(BotConstants.TODAY)) {
                     chatState.setBotState(BotState.INITIAL);
                     chatStateRepository.save(chatState);
@@ -186,6 +227,28 @@ public class MessageHandlerImpl implements MessageHandler {
                             "Допустимые значения: сегодня, завтра, неделя");
                     responseMessage.setReplyMarkup(getTimePeriodMenuReplyMarkup());
                 }
+            }
+            case WAITING_FOR_REMINDER_PLACE_NAME -> {
+                chatState.setPlaceName(text);
+                chatState.setBotState(BotState.WAITING_FOR_REMINDER_TIME);
+                chatStateRepository.save(chatState);
+                responseMessage.setText("Введите время (в UTC), когда должно присылаться " +
+                        "напоминание прогноза (пример: 08:00)");
+                responseMessage.setReplyMarkup(getCancelReplyMarkup());
+            }
+            case WAITING_FOR_REMINDER_TIME -> {
+                String response = handleNewSubscription(chatId, chatState.getPlaceName(), text);
+                responseMessage.setText(response);
+                if (!response.equals(BotConstants.WRONG_REMINDER_TIME)) {
+                    chatState.setBotState(BotState.INITIAL);
+                    chatState.setPlaceName(null);
+                    chatStateRepository.save(chatState);
+                }
+            }
+            case WAITING_FOR_REMINDER_POSITION_TO_DELETE -> {
+                responseMessage.setText(handleDeleteSubscription(chatId, text));
+                chatState.setBotState(BotState.INITIAL);
+                chatStateRepository.save(chatState);
             }
         }
         return responseMessage;
@@ -289,5 +352,41 @@ public class MessageHandlerImpl implements MessageHandler {
         List<List<InlineKeyboardButton>> keyboard = List.of(firstRow, secondRow);
         timePeriodMenu.setKeyboard(keyboard);
         return timePeriodMenu;
+    }
+
+    /**
+     * Обрабатывает запрос на добавление напоминания и возвращает ответ в виде строки
+     *
+     * @param chatId ID чата
+     * @param placeName название места
+     * @param time время в виде строки (в UTC)
+     * @return ответ в виде строки
+     */
+    private String handleNewSubscription(long chatId, String placeName, String time) {
+        try {
+            reminderService.addReminder(chatId, placeName, time);
+        } catch (IllegalArgumentException e) {
+            return BotConstants.WRONG_REMINDER_TIME;
+        }
+        return BotConstants.ADDED_SUBSCRIPTION + " " + time;
+    }
+
+    /**
+     * Обрабатывает запрос на удаление напоминания и возвращает ответ в виде строки
+     *
+     * @param chatId ID чата
+     * @param position относительная позиция напоминания в списке
+     * @return ответ в виде строки
+     */
+    private String handleDeleteSubscription(long chatId, String position) {
+        try {
+            int positionAsNumber = Integer.parseInt(position);
+            reminderService.deleteReminderByRelativePosition(chatId, positionAsNumber);
+            return BotConstants.DELETED_SUBSCRIPTION;
+        } catch (NumberFormatException e) {
+            return BotConstants.NOT_A_NUMBER_REMINDER_POSITION;
+        } catch (IllegalArgumentException e) {
+            return BotConstants.NO_REMINDER_WITH_POSITION;
+        }
     }
 }
