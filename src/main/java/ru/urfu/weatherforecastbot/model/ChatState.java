@@ -20,16 +20,16 @@ public class ChatState {
     private long chatId;
 
     /**
-     * Место прогноза погоды (если пользователь в состоянии запроса погоды)
+     * Место прогноза погоды (если пользователь в состоянии запроса погоды или создания напоминания)
      */
     @Column(name = "place_name")
     private String placeName;
 
     /**
-     * Временной период прогноза погоды (если пользователь в состоянии запроса погоды)
+     * Время прогноза погоды (если пользователь в состоянии запроса погоды или создания напоминания)
      */
-    @Column(name = "time_period")
-    private String timePeriod;
+    @Column(name = "time")
+    private String time;
 
     /**
      * Состояние бота
@@ -74,21 +74,21 @@ public class ChatState {
     }
 
     /**
-     * Возвращает временной период
+     * Возвращает время
      *
-     * @return временной период
+     * @return время
      */
-    public Optional<String> getTimePeriod() {
-        return Optional.ofNullable(timePeriod);
+    public Optional<String> getTime() {
+        return Optional.ofNullable(time);
     }
 
     /**
-     * Устанавливает временной период
+     * Устанавливает время
      *
-     * @param timePeriod временной период
+     * @param time время
      */
-    public void setTimePeriod(String timePeriod) {
-        this.timePeriod = timePeriod;
+    public void setTime(String time) {
+        this.time = time;
     }
 
     /**

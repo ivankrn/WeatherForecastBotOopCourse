@@ -4,8 +4,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Chat;
@@ -17,6 +17,7 @@ import ru.urfu.weatherforecastbot.model.BotState;
 import ru.urfu.weatherforecastbot.model.ChatState;
 import ru.urfu.weatherforecastbot.model.Place;
 import ru.urfu.weatherforecastbot.model.WeatherForecast;
+import ru.urfu.weatherforecastbot.service.ReminderService;
 import ru.urfu.weatherforecastbot.service.WeatherForecastService;
 import ru.urfu.weatherforecastbot.util.WeatherForecastFormatterImpl;
 
@@ -53,8 +54,12 @@ class MessageHandlerImplTest {
     /**
      * Обработчик сообщений
      */
-    @InjectMocks
-    private MessageHandlerImpl messageHandler;
+    private MessageHandler messageHandler;
+    /**
+     * Сервис управления напоминаниями
+     */
+    private ReminderService reminderService;
+
     /**
      * Сообщение, пришедшее от пользователя и которое требуется обработать
      */
@@ -70,6 +75,9 @@ class MessageHandlerImplTest {
         long userChatId = 1L;
         userChat.setId(userChatId);
         userMessage.setChat(userChat);
+        reminderService = Mockito.mock();
+        messageHandler =
+                new MessageHandlerImpl(weatherService, forecastFormatter, chatStateRepository, reminderService);
     }
 
     @Test
@@ -356,6 +364,8 @@ class MessageHandlerImplTest {
                         /help - меню помощи
                         /info <название населенного пункта> - вывести прогноз погоды для <населенного пункта>
                         /info_week <название населенного пункта> - вывести прогноз погоды для <название населенного пункта> на неделю вперёд.
+                        /subscribe <название населенного пункта> <время по Гринвичу> - создать напоминание прогноза погоды
+                        /del_subscription <номер напоминания> - удалить напоминание с указанным номером
                         """,
                 responseMessage.getText());
         assertEquals(3, responseMessageButtons.size());
@@ -377,6 +387,8 @@ class MessageHandlerImplTest {
                         /help - меню помощи
                         /info <название населенного пункта> - вывести прогноз погоды для <населенного пункта>
                         /info_week <название населенного пункта> - вывести прогноз погоды для <название населенного пункта> на неделю вперёд.
+                        /subscribe <название населенного пункта> <время по Гринвичу> - создать напоминание прогноза погоды
+                        /del_subscription <номер напоминания> - удалить напоминание с указанным номером
                         """,
                 responseMessage.getText());
     }
@@ -494,6 +506,215 @@ class MessageHandlerImplTest {
         assertTrue(responseMessageButtons.stream().anyMatch(button -> button.getText().equals("Узнать прогноз")));
         assertTrue(responseMessageButtons.stream().anyMatch(button -> button.getText().equals("Помощь")));
         assertTrue(responseMessageButtons.stream().anyMatch(button -> button.getText().equals("Отмена")));
+    }
+
+    /**
+     * Проверяет полную команду на создание напоминания прогноза.<br>
+     * Проверки:
+     * <ul>
+     *     <li>если пользователь указал корректное время напоминания, то ответное сообщение должно содержать уведомление
+     *     о том, что напоминание создано, при этом оно должно создаться</li>
+     *     <li>если пользователь указал некорректное время напоминания, то ответное сообщение должно содержать
+     *     просьбу ввести время в корректном формате</li>
+     * </ul>
+     */
+    @Test
+    @DisplayName("Тест на полную команду создания напоминания")
+    void testFullSubscribeCommand() {
+        long chatId = 1L;
+        Chat chat = new Chat();
+        chat.setId(chatId);
+        Message correctTimeMessage = new Message();
+        correctTimeMessage.setText("/subscribe Екатеринбург 05:00");
+        correctTimeMessage.setChat(chat);
+
+        SendMessage correctTimeMessageResponse = messageHandler.handle(correctTimeMessage);
+        assertEquals("Напоминание создано. Буду присылать прогноз погоды в 05:00",
+                correctTimeMessageResponse.getText());
+        verify(reminderService).addReminder(chatId, "Екатеринбург", "05:00");
+
+        Message wrongTimeMessage = new Message();
+        wrongTimeMessage.setText("/subscribe Екатеринбург abc");
+        wrongTimeMessage.setChat(chat);
+        doThrow(IllegalArgumentException.class).when(reminderService)
+                .addReminder(chatId, "Екатеринбург", "abc");
+
+        SendMessage wrongTimeMessageResponse = messageHandler.handle(wrongTimeMessage);
+        assertEquals("Некорректный формат времени. Введите время в виде 00:00 (часы:минуты)",
+                wrongTimeMessageResponse.getText());
+    }
+
+    /**
+     * Проверяет неполную команду на создание напоминания прогноза.<br>
+     * Проверки:
+     * <ul>
+     *     <li>если во время диалога с ботом пользователь присылает некорректное время, то ответное сообщение должно
+     *     содержать просьбу ввести время в корректном формате</li>
+     *     <li>если во время диалога с ботом пользователь присылает корректное время, то ответное сообщение должно
+     *     содержать уведомление о том, что напоминание создано, при этом оно должно создаться</li>
+     * </ul>
+     */
+    @Test
+    @DisplayName("Тест на неполную команду создания напоминания")
+    void testNotFullSubscribeCommand() {
+        long chatId = 1L;
+        Chat chat = new Chat();
+        chat.setId(chatId);
+        ChatState chatState = new ChatState();
+        chatState.setChatId(chatId);
+        chatState.setBotState(BotState.INITIAL);
+        when(chatStateRepository.findById(chatId)).thenReturn(Optional.of(chatState));
+        Message subscribeMessage = new Message();
+        subscribeMessage.setChat(chat);
+        subscribeMessage.setText("/subscribe");
+
+        SendMessage subscribeMessageResponse = messageHandler.handle(subscribeMessage);
+        assertEquals("Введите название места, для которого будут присылаться напоминания",
+                subscribeMessageResponse.getText());
+        List<InlineKeyboardButton> subscribeMessageButtons = getMessageButtons(subscribeMessageResponse);
+        assertEquals(1, subscribeMessageButtons.size());
+        assertTrue(subscribeMessageButtons.stream().anyMatch(button -> button.getText().equals("Отмена")));
+
+        Message placeNameMessage = new Message();
+        placeNameMessage.setText("Екатеринбург");
+        placeNameMessage.setChat(chat);
+
+        SendMessage placeNameMessageResponse = messageHandler.handle(placeNameMessage);
+        assertEquals("Введите время (в UTC), когда должно присылаться напоминание прогноза (пример: 08:00)",
+                placeNameMessageResponse.getText());
+        List<InlineKeyboardButton> placeNameMessageButtons = getMessageButtons(placeNameMessageResponse);
+        assertEquals(1, placeNameMessageButtons.size());
+        assertTrue(placeNameMessageButtons.stream().anyMatch(button -> button.getText().equals("Отмена")));
+
+        // проверка на некорретный формат времени
+        Message wrongTimeMessage = new Message();
+        wrongTimeMessage.setText("Время - очередная иллюзия, чьим рабом я не желаю быть.");
+        wrongTimeMessage.setChat(chat);
+        doThrow(IllegalArgumentException.class).when(reminderService)
+                .addReminder(chatId, "Екатеринбург", wrongTimeMessage.getText());
+
+        SendMessage wrongTimeMessageResponse = messageHandler.handle(wrongTimeMessage);
+        assertEquals("Некорректный формат времени. Введите время в виде 00:00 (часы:минуты)",
+                wrongTimeMessageResponse.getText());
+
+        Message timeMessage = new Message();
+        timeMessage.setText("05:00");
+        timeMessage.setChat(chat);
+
+        SendMessage timeMessageResponse = messageHandler.handle(timeMessage);
+        assertEquals("Напоминание создано. Буду присылать прогноз погоды в 05:00",
+                timeMessageResponse.getText());
+        verify(reminderService).addReminder(chatId, "Екатеринбург", "05:00");
+    }
+
+    /**
+     * Проверяет полную команду удаления напоминания.<br>
+     * Проверки:
+     * <ul>
+     *     <li>если существует напоминание с такой позицией, то ответное сообщение должно содержать подтверждение
+     *     удаления, и при этом напоминание должно быть удалено</li>
+     *     <li>если не существует напоминания с такой позицией, то ответное сообщение должно содержать
+     *     предупреждение о том, что нет напоминания с такой позицией</li>
+     *     <li>если позиция не число, то ответное сообщение должно содержать просьбу ввести число</li>
+     * </ul>
+     */
+    @Test
+    @DisplayName("Тест на полную команду удаления напоминания")
+    void testFullDeleteSubscriptionCommand() {
+        long chatId = 1L;
+        Chat chat = new Chat();
+        chat.setId(chatId);
+        Message beforeDeletionMessage = new Message();
+        beforeDeletionMessage.setChat(chat);
+        beforeDeletionMessage.setText("/del_subscription 1");
+
+        SendMessage beforeDeletionMessageResponse = messageHandler.handle(beforeDeletionMessage);
+        assertEquals("Напоминание удалено. Больше не буду присылать прогноз погоды.",
+                beforeDeletionMessageResponse.getText());
+        verify(reminderService).deleteReminderByRelativePosition(chatId, 1);
+
+        Message afterDeletionMessage = new Message();
+        afterDeletionMessage.setChat(chat);
+        afterDeletionMessage.setText("/del_subscription 1");
+        doThrow(IllegalArgumentException.class).when(reminderService)
+                .deleteReminderByRelativePosition(chatId, 1);
+
+        SendMessage afterDeletionMessageResponse = messageHandler.handle(beforeDeletionMessage);
+        assertEquals("Нет напоминания с таким номером.",
+                afterDeletionMessageResponse.getText());
+        verify(reminderService, times(2)).deleteReminderByRelativePosition(chatId, 1);
+
+        Message notANumberPositionMessage = new Message();
+        notANumberPositionMessage.setText("/del_subscription abc");
+        notANumberPositionMessage.setChat(chat);
+
+        SendMessage notANumberPositionMessageResponse = messageHandler.handle(notANumberPositionMessage);
+        assertEquals("Некорректный формат номера напоминания. Используйте только числа при вводе."
+                , notANumberPositionMessageResponse.getText());
+    }
+
+    /**
+     * Проверяет неполную команду удаления напоминания.<br>
+     * Проверки:
+     * <ul>
+     *     <li>если пользователь прислал корректный номер, то бот должен удалить напоминание под этим номером</li>
+     *     <li>если пользователь прислал номер несуществующего напоминания, бот должен уведомить что нет напоминания
+     *     с таким номером</li>
+     *     <li>если пользователь прислал не число, то бот должен попросить ввести номер повторно</li>
+     * </ul>
+     */
+    @Test
+    @DisplayName("Тест на неполную команду удаления напоминания")
+    void testNotFullDeleteSubscriptionCommand() {
+        long chatId = 1L;
+        Chat chat = new Chat();
+        chat.setId(chatId);
+        ChatState chatState = new ChatState();
+        chatState.setChatId(chatId);
+        chatState.setBotState(BotState.INITIAL);
+        when(chatStateRepository.findById(chatId)).thenReturn(Optional.of(chatState));
+        Message deleteSubscriptionMessage = new Message();
+        deleteSubscriptionMessage.setChat(chat);
+        deleteSubscriptionMessage.setText("/del_subscription");
+
+        SendMessage deleteSubscriptionMessageResponse = messageHandler.handle(deleteSubscriptionMessage);
+        assertEquals("Введите номер напоминания, которое надо удалить",
+                deleteSubscriptionMessageResponse.getText());
+        List<InlineKeyboardButton> deleteSubscriptionMessageButtons =
+                getMessageButtons(deleteSubscriptionMessageResponse);
+        assertEquals(1, deleteSubscriptionMessageButtons.size());
+        assertTrue(deleteSubscriptionMessageButtons.stream().anyMatch(button -> button.getText().equals("Отмена")));
+        verify(reminderService, never()).deleteReminderByRelativePosition(eq(chatId), anyInt());
+
+        Message correctPositionMessage = new Message();
+        correctPositionMessage.setText("1");
+        correctPositionMessage.setChat(chat);
+
+        SendMessage correctPositionMessageResponse = messageHandler.handle(correctPositionMessage);
+        assertEquals("Напоминание удалено. Больше не буду присылать прогноз погоды.",
+                correctPositionMessageResponse.getText());
+        verify(reminderService).deleteReminderByRelativePosition(chatId, 1);
+
+        Message notExistentPositionMessage = new Message();
+        notExistentPositionMessage.setText("1000");
+        notExistentPositionMessage.setChat(chat);
+        doThrow(IllegalArgumentException.class).when(reminderService)
+                .deleteReminderByRelativePosition(chatId, 1000);
+
+        messageHandler.handle(deleteSubscriptionMessage);
+        SendMessage notExistentPositionMessageResponse = messageHandler.handle(notExistentPositionMessage);
+        assertEquals("Нет напоминания с таким номером.",
+                notExistentPositionMessageResponse.getText());
+        verify(reminderService).deleteReminderByRelativePosition(chatId, 1000);
+
+        messageHandler.handle(deleteSubscriptionMessage);
+        Message notANumberPositionMessage = new Message();
+        notANumberPositionMessage.setText("abc");
+        notANumberPositionMessage.setChat(chat);
+
+        SendMessage notANumberPositionMessageResponse = messageHandler.handle(notANumberPositionMessage);
+        assertEquals("Некорректный формат номера напоминания. Используйте только числа при вводе.",
+                notANumberPositionMessageResponse.getText());
     }
 
     /**
