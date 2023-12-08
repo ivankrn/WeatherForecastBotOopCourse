@@ -4,7 +4,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
@@ -18,6 +17,8 @@ import ru.urfu.weatherforecastbot.model.ChatState;
 import ru.urfu.weatherforecastbot.model.Place;
 import ru.urfu.weatherforecastbot.model.WeatherForecast;
 import ru.urfu.weatherforecastbot.service.WeatherForecastService;
+import ru.urfu.weatherforecastbot.util.ForecastTimePeriod;
+import ru.urfu.weatherforecastbot.util.WeatherForecastFormatter;
 import ru.urfu.weatherforecastbot.util.WeatherForecastFormatterImpl;
 
 import java.time.LocalDateTime;
@@ -27,7 +28,9 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.Mockito.*;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 /**
  * Тесты обработчика сообщений
@@ -38,27 +41,30 @@ class MessageHandlerImplTest {
     /**
      * Форматировщик прогноза погоды в удобочитаемый вид
      */
-    @Mock
-    private WeatherForecastFormatterImpl forecastFormatter;
+    private final WeatherForecastFormatter forecastFormatter = new WeatherForecastFormatterImpl();
     /**
      * Сервис для получения прогнозов погоды
      */
-    @Mock
-    private WeatherForecastService weatherService;
+    private final WeatherForecastService weatherService;
     /**
      * Репозиторий состояний чатов
      */
-    @Mock
-    private ChatStateRepository chatStateRepository;
+    private final ChatStateRepository chatStateRepository;
     /**
      * Обработчик сообщений
      */
-    @InjectMocks
-    private MessageHandlerImpl messageHandler;
+    private final MessageHandler messageHandler;
     /**
      * Сообщение, пришедшее от пользователя и которое требуется обработать
      */
     private Message userMessage;
+
+    public MessageHandlerImplTest(@Mock WeatherForecastService weatherService,
+                                  @Mock ChatStateRepository chatStateRepository) {
+        this.weatherService = weatherService;
+        this.chatStateRepository = chatStateRepository;
+        messageHandler = new MessageHandlerImpl(weatherService, forecastFormatter, chatStateRepository);
+    }
 
     /**
      * Подготавливает окружение перед тестами
@@ -110,13 +116,12 @@ class MessageHandlerImplTest {
                     new WeatherForecast(place, today.withHour(hour), 0, 0));
         }
         when(weatherService.getForecast("Екатеринбург", 1)).thenReturn(todayForecast);
-        when(forecastFormatter.formatTodayForecast(todayForecast))
-                .thenReturn("Прогноз погоды на сегодня (Екатеринбург): ...");
+        String expected = forecastFormatter.formatForecasts(ForecastTimePeriod.TODAY, todayForecast);
         userMessage.setText("/info Екатеринбург");
 
         SendMessage responseMessage = messageHandler.handle(userMessage);
 
-        assertEquals("Прогноз погоды на сегодня (Екатеринбург): ...", responseMessage.getText());
+        assertEquals(expected, responseMessage.getText());
     }
 
     @Test
@@ -138,8 +143,7 @@ class MessageHandlerImplTest {
                     new WeatherForecast(place, today.withHour(hour), 0, 0));
         }
         when(weatherService.getForecast("Екатеринбург", 1)).thenReturn(todayForecast);
-        when(forecastFormatter.formatTodayForecast(todayForecast))
-                .thenReturn("Прогноз погоды на сегодня (Екатеринбург): ...");
+        String expected = forecastFormatter.formatForecasts(ForecastTimePeriod.TODAY, todayForecast);
         ChatState chatState = new ChatState();
         chatState.setChatId(chatId);
         chatState.setBotState(BotState.INITIAL);
@@ -147,6 +151,7 @@ class MessageHandlerImplTest {
 
         SendMessage forecastTodayMessageResponse = messageHandler.handle(forecastTodayMessage);
         assertEquals("Введите название места", forecastTodayMessageResponse.getText());
+        assertEquals(BotState.WAITING_FOR_PLACE_NAME, chatState.getBotState());
         List<InlineKeyboardButton> forecastWeekResponseButtons = getMessageButtons(forecastTodayMessageResponse);
         assertEquals(1, forecastWeekResponseButtons.size());
         assertTrue(forecastWeekResponseButtons.stream().anyMatch(button -> button.getText().equals("Отмена")));
@@ -156,7 +161,8 @@ class MessageHandlerImplTest {
         placeNameMessage.setText("Екатеринбург");
 
         SendMessage placeNameMessageResponse = messageHandler.handle(placeNameMessage);
-        assertEquals("Прогноз погоды на сегодня (Екатеринбург): ...", placeNameMessageResponse.getText());
+        assertEquals(expected, placeNameMessageResponse.getText());
+        assertEquals(BotState.INITIAL, chatState.getBotState());
     }
 
     @Test
@@ -164,7 +170,7 @@ class MessageHandlerImplTest {
             "предупреждение о том, что место не найдено")
     void givenNotFoundPlace_whenTodayForecast_thenReturnNotFound() {
         userMessage.setText("/info там_где_нас_нет");
-        when(weatherService.getForecast("там_где_нас_нет", 1)).thenReturn(null);
+        when(weatherService.getForecast("там_где_нас_нет", 1)).thenReturn(List.of());
 
         SendMessage responseMessage = messageHandler.handle(userMessage);
 
@@ -224,10 +230,9 @@ class MessageHandlerImplTest {
                 .thenReturn(marsTodayForecast);
         when(weatherService.getForecast("Нижний Новгород", 1))
                 .thenReturn(nizhnyNovgorodTodayForecast);
-        when(forecastFormatter.formatTodayForecast(marsTodayForecast))
-                .thenReturn("Прогноз погоды на сегодня (Марс): ...");
-        when(forecastFormatter.formatTodayForecast(nizhnyNovgorodTodayForecast))
-                .thenReturn("Прогноз погоды на сегодня (Нижний Новгород): ...");
+        String expectedMarsForecast = forecastFormatter.formatForecasts(ForecastTimePeriod.TODAY, marsTodayForecast);
+        String expectedNizhnyNovgorodForecast =
+                forecastFormatter.formatForecasts(ForecastTimePeriod.TODAY, nizhnyNovgorodTodayForecast);
         ChatState marsDwellerChatState = new ChatState();
         marsDwellerChatState.setChatId(marsDwellerChatId);
         marsDwellerChatState.setBotState(BotState.INITIAL);
@@ -249,12 +254,12 @@ class MessageHandlerImplTest {
         SendMessage replyToTypicalUser = messageHandler.handle(typicalUserMessage);
 
         assertEquals(marsDwellerChatId, Long.parseLong(replyToMarsDweller.getChatId()));
-        assertEquals("Прогноз погоды на сегодня (Марс): ...", replyToMarsDweller.getText());
+        assertEquals(expectedMarsForecast, replyToMarsDweller.getText());
         assertEquals(instructionsBookwormChatId, Long.parseLong(replyToInstructionsBookworm.getChatId()));
         assertEquals("Извините, я не знаю такой команды.", replyToInstructionsBookworm.getText());
         assertEquals(typicalUserChatId, Long.parseLong(replyToTypicalUser.getChatId()));
         // проверяем, что корректно работает с названиями, содержащие пробелы
-        assertEquals("Прогноз погоды на сегодня (Нижний Новгород): ...", replyToTypicalUser.getText());
+        assertEquals(expectedNizhnyNovgorodForecast, replyToTypicalUser.getText());
     }
 
     @Test
@@ -274,13 +279,12 @@ class MessageHandlerImplTest {
         }
         when(weatherService.getForecast("Екатеринбург", 7))
                 .thenReturn(weekForecast);
-        when(forecastFormatter.formatWeekForecast(weekForecast))
-                .thenReturn("Прогноз погоды на неделю вперед (Екатеринбург): ...");
+        String expected = forecastFormatter.formatForecasts(ForecastTimePeriod.WEEK, weekForecast);
         userMessage.setText("/info_week Екатеринбург");
 
         SendMessage responseMessage = messageHandler.handle(userMessage);
 
-        assertEquals("Прогноз погоды на неделю вперед (Екатеринбург): ...", responseMessage.getText());
+        assertEquals(expected, responseMessage.getText());
     }
 
     @Test
@@ -288,7 +292,7 @@ class MessageHandlerImplTest {
             "должно возвращаться сообщение об ошибке")
     void givenNonExistentPlace_whenWeekForecast_thenErrorMessage() {
         userMessage.setText("/info_week там_где_нас_нет");
-        when(weatherService.getForecast("там_где_нас_нет", 7)).thenReturn(null);
+        when(weatherService.getForecast("там_где_нас_нет", 7)).thenReturn(List.of());
 
         SendMessage responseMessage = messageHandler.handle(userMessage);
 
@@ -317,8 +321,7 @@ class MessageHandlerImplTest {
             }
         }
         when(weatherService.getForecast("Екатеринбург", 7)).thenReturn(weekForecast);
-        when(forecastFormatter.formatWeekForecast(weekForecast))
-                .thenReturn("Прогноз погоды на неделю вперед (Екатеринбург): ...");
+        String expected = forecastFormatter.formatForecasts(ForecastTimePeriod.WEEK, weekForecast);
         ChatState chatState = new ChatState();
         chatState.setChatId(chatId);
         chatState.setBotState(BotState.INITIAL);
@@ -326,6 +329,7 @@ class MessageHandlerImplTest {
 
         SendMessage forecastWeekMessageResponse = messageHandler.handle(forecastWeekMessage);
         assertEquals("Введите название места", forecastWeekMessageResponse.getText());
+        assertEquals(BotState.WAITING_FOR_PLACE_NAME, chatState.getBotState());
         List<InlineKeyboardButton> forecastWeekResponseButtons = getMessageButtons(forecastWeekMessageResponse);
         assertEquals(1, forecastWeekResponseButtons.size());
         assertTrue(forecastWeekResponseButtons.stream().anyMatch(button -> button.getText().equals("Отмена")));
@@ -335,7 +339,8 @@ class MessageHandlerImplTest {
         placeNameMessage.setText("Екатеринбург");
 
         SendMessage placeNameMessageResponse = messageHandler.handle(placeNameMessage);
-        assertEquals("Прогноз погоды на неделю вперед (Екатеринбург): ...", placeNameMessageResponse.getText());
+        assertEquals(expected, placeNameMessageResponse.getText());
+        assertEquals(BotState.INITIAL, chatState.getBotState());
     }
 
     @Test
@@ -400,8 +405,7 @@ class MessageHandlerImplTest {
                     new WeatherForecast(place, today.withHour(hour), 0, 0));
         }
         when(weatherService.getForecast("Екатеринбург", 1)).thenReturn(todayForecast);
-        when(forecastFormatter.formatTodayForecast(todayForecast))
-                .thenReturn("Прогноз погоды на сегодня: ...");
+        String expected = forecastFormatter.formatForecasts(ForecastTimePeriod.TODAY, todayForecast);
         ChatState chatState = new ChatState();
         chatState.setChatId(chatId);
         chatState.setBotState(BotState.INITIAL);
@@ -409,6 +413,7 @@ class MessageHandlerImplTest {
 
         SendMessage forecastMessageResponse = messageHandler.handle(forecastMessage);
         assertEquals("Введите название места", forecastMessageResponse.getText());
+        assertEquals(BotState.WAITING_FOR_PLACE_NAME, chatState.getBotState());
 
         Message placeNameMessage = new Message();
         placeNameMessage.setChat(chat);
@@ -418,6 +423,7 @@ class MessageHandlerImplTest {
         List<InlineKeyboardButton> placeNameMessageButtons = getMessageButtons(placeNameMessageResponse);
         assertEquals("Выберите временной период для просмотра (сегодня, завтра, неделя)",
                 placeNameMessageResponse.getText());
+        assertEquals(BotState.WAITING_FOR_TIME_PERIOD, chatState.getBotState());
         assertEquals(4, placeNameMessageButtons.size());
         assertTrue(placeNameMessageButtons.stream().anyMatch(button -> button.getText().equals("Сегодня")));
         assertTrue(placeNameMessageButtons.stream().anyMatch(button -> button.getText().equals("Завтра")));
@@ -429,7 +435,8 @@ class MessageHandlerImplTest {
         timePeriodMessage.setText("сегодня");
 
         SendMessage timePeriodMessageResponse = messageHandler.handle(timePeriodMessage);
-        assertEquals("Прогноз погоды на сегодня: ...", timePeriodMessageResponse.getText());
+        assertEquals(expected, timePeriodMessageResponse.getText());
+        assertEquals(BotState.INITIAL, chatState.getBotState());
     }
 
     @Test

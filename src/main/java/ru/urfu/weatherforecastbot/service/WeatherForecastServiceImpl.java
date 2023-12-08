@@ -30,26 +30,38 @@ public class WeatherForecastServiceImpl implements WeatherForecastService {
     /**
      * Клиент для запросов API
      */
-    private final WebClient webClient = WebClient.builder()
-            .baseUrl(BASE_URL)
-            .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
-            .build();
+    private final WebClient webClient;
 
     /**
-     * Создает экземпляр WeatherForecastServiceImpl, используя переданные аргументы
+     * Создает экземпляр WeatherForecastServiceImpl, используя в качестве {@link WeatherForecastServiceImpl#webClient}
+     * {@link WebClient}
      *
      * @param geocodingService сервис для поиска мест
      */
     @Autowired
     public WeatherForecastServiceImpl(GeocodingService geocodingService) {
         this.geocodingService = geocodingService;
+        webClient = WebClient.builder()
+                .baseUrl(BASE_URL)
+                .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                .build();
+    }
+
+    /**
+     * Создает экземпляр WeatherForecastServiceImpl, используя переданные аргументы
+     *
+     * @param geocodingService сервис для поиска мест
+     */
+    public WeatherForecastServiceImpl(GeocodingService geocodingService, WebClient webClient) {
+        this.geocodingService = geocodingService;
+        this.webClient = webClient;
     }
 
     @Override
     public List<WeatherForecast> getForecast(String placeName, int daysCount) {
         Optional<Place> place = geocodingService.findPlaceByName(placeName);
         if (place.isEmpty()) {
-            return null;
+            return List.of();
         }
         return webClient.get()
                 .uri(uriBuilder -> uriBuilder

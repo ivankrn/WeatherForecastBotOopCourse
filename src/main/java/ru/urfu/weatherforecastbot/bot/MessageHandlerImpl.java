@@ -11,6 +11,8 @@ import ru.urfu.weatherforecastbot.model.BotState;
 import ru.urfu.weatherforecastbot.model.ChatState;
 import ru.urfu.weatherforecastbot.model.WeatherForecast;
 import ru.urfu.weatherforecastbot.service.WeatherForecastService;
+import ru.urfu.weatherforecastbot.util.ForecastTimePeriod;
+import ru.urfu.weatherforecastbot.util.WeatherForecastFormatter;
 import ru.urfu.weatherforecastbot.util.WeatherForecastFormatterImpl;
 
 import java.util.List;
@@ -25,7 +27,7 @@ public class MessageHandlerImpl implements MessageHandler {
     /**
      * Форматировщик прогноза погоды в удобочитаемый вид
      */
-    private final WeatherForecastFormatterImpl forecastFormatter;
+    private final WeatherForecastFormatter forecastFormatter;
     /**
      * Репозиторий состояний чатов
      */
@@ -53,7 +55,7 @@ public class MessageHandlerImpl implements MessageHandler {
      * @param chatStateRepository репозиторий состояний чатов
      */
     public MessageHandlerImpl(WeatherForecastService weatherService,
-                              WeatherForecastFormatterImpl forecastFormatter, ChatStateRepository chatStateRepository) {
+                              WeatherForecastFormatter forecastFormatter, ChatStateRepository chatStateRepository) {
         this.weatherService = weatherService;
         this.forecastFormatter = forecastFormatter;
         this.chatStateRepository = chatStateRepository;
@@ -199,10 +201,10 @@ public class MessageHandlerImpl implements MessageHandler {
      */
     private String handleTodayForecasts(String placeName) {
         List<WeatherForecast> todayForecasts = weatherService.getForecast(placeName, 1);
-        if (todayForecasts == null) {
+        if (todayForecasts.isEmpty()) {
             return BotConstants.NOT_FOUND_PLACE;
         }
-        return forecastFormatter.formatTodayForecast(todayForecasts);
+        return forecastFormatter.formatForecasts(ForecastTimePeriod.TODAY, todayForecasts);
     }
 
     /**
@@ -213,11 +215,11 @@ public class MessageHandlerImpl implements MessageHandler {
      */
     private String handleTomorrowForecasts(String placeName) {
         List<WeatherForecast> forecasts = weatherService.getForecast(placeName, 2);
-        if (forecasts == null) {
+        if (forecasts.isEmpty()) {
             return BotConstants.NOT_FOUND_PLACE;
         }
         List<WeatherForecast> tomorrowForecasts = forecasts.subList(24, 48);
-        return forecastFormatter.formatTomorrowForecast(tomorrowForecasts);
+        return forecastFormatter.formatForecasts(ForecastTimePeriod.TOMORROW, tomorrowForecasts);
     }
 
     /**
@@ -228,10 +230,10 @@ public class MessageHandlerImpl implements MessageHandler {
      */
     private String handleWeekForecasts(String placeName) {
         List<WeatherForecast> weekForecasts = weatherService.getForecast(placeName, 7);
-        if (weekForecasts == null) {
+        if (weekForecasts.isEmpty()) {
             return BotConstants.NOT_FOUND_PLACE;
         }
-        return forecastFormatter.formatWeekForecast(weekForecasts);
+        return forecastFormatter.formatForecasts(ForecastTimePeriod.WEEK, weekForecasts);
     }
 
     /**

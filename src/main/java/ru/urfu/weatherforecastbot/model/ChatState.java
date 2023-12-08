@@ -114,11 +114,11 @@ public class ChatState {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         ChatState chatState = (ChatState) o;
-        return chatId == chatState.chatId && Objects.equals(placeName, chatState.placeName) && botState == chatState.botState;
+        return chatId == chatState.chatId;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(chatId, placeName, botState);
+        return Objects.hash(chatId);
     }
 }
