@@ -2,10 +2,6 @@ package ru.urfu.weatherforecastbot.bot;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
-import org.telegram.telegrambots.meta.api.objects.Message;
-import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
-import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
 import ru.urfu.weatherforecastbot.database.ChatStateRepository;
 import ru.urfu.weatherforecastbot.model.BotState;
 import ru.urfu.weatherforecastbot.model.ChatState;
@@ -37,7 +33,7 @@ public class MessageHandlerImpl implements MessageHandler {
      * Создает экземпляр MessageHandlerImpl, используя в качестве {@link MessageHandlerImpl#forecastFormatter
      * forecastFormatter} {@link WeatherForecastFormatterImpl}
      *
-     * @param weatherService сервис для получения прогнозов погоды
+     * @param weatherService      сервис для получения прогнозов погоды
      * @param chatStateRepository репозиторий состояний чатов
      */
     @Autowired
@@ -50,8 +46,8 @@ public class MessageHandlerImpl implements MessageHandler {
     /**
      * Создает экземпляр MessageHandlerImpl, используя переданные аргументы
      *
-     * @param weatherService    сервис для получения прогнозов погоды
-     * @param forecastFormatter форматировщик прогноза погоды в удобочитаемый вид
+     * @param weatherService      сервис для получения прогнозов погоды
+     * @param forecastFormatter   форматировщик прогноза погоды в удобочитаемый вид
      * @param chatStateRepository репозиторий состояний чатов
      */
     public MessageHandlerImpl(WeatherForecastService weatherService,
@@ -62,60 +58,53 @@ public class MessageHandlerImpl implements MessageHandler {
     }
 
     @Override
-    public SendMessage handle(Message message) {
-        long chatId = message.getChatId();
-        SendMessage responseMessage = new SendMessage();
-        responseMessage.setChatId(chatId);
+    public BotMessage handle(long chatId, String message) {
+        BotMessage responseMessage = new BotMessage();
         ChatState chatState = chatStateRepository.findById(chatId).orElseGet(() -> {
             ChatState newChatState = new ChatState();
             newChatState.setChatId(chatId);
             newChatState.setBotState(BotState.INITIAL);
             return chatStateRepository.save(newChatState);
         });
-        if (message.hasText()) {
-            String messageText = message.getText();
-            String[] splittedText = messageText.split(" ");
-            String command = splittedText[0];
-            switch (command) {
-                case BotConstants.COMMAND_START -> {
-                    chatState.setBotState(BotState.INITIAL);
-                    chatState.setPlaceName(null);
-                    chatState.setTimePeriod(null);
-                    chatStateRepository.save(chatState);
-                    responseMessage.setText(BotConstants.START_TEXT);
-                    responseMessage.setReplyMarkup(getMainMenuReplyMarkup());
-                }
-                case BotConstants.COMMAND_HELP -> responseMessage.setText(BotConstants.HELP_TEXT);
-                case BotConstants.COMMAND_CANCEL -> {
-                    chatState.setBotState(BotState.INITIAL);
-                    chatState.setPlaceName(null);
-                    chatState.setTimePeriod(null);
-                    chatStateRepository.save(chatState);
-                    responseMessage.setText("Вы вернулись в основное меню");
-                    responseMessage.setReplyMarkup(getMainMenuReplyMarkup());
-                }
-                case BotConstants.COMMAND_FORECAST_TODAY -> {
-                    if (splittedText.length < 2) {
-                        return handleNonCommand(chatId, command);
-                    } else {
-                        String place = message.getText().substring(message.getText().indexOf(" ") + 1);
-                        responseMessage.setText(handleTodayForecasts(place));
-                    }
-                }
-                case BotConstants.COMMAND_FORECAST_WEEK -> {
-                    if (splittedText.length < 2) {
-                        return handleNonCommand(chatId, command);
-                    } else {
-                        String place = message.getText().substring(message.getText().indexOf(" ") + 1);
-                        responseMessage.setText(handleWeekForecasts(place));
-                    }
-                }
-                default -> {
-                    return handleNonCommand(chatId, messageText);
+        String[] splittedText = message.split(" ");
+        String command = splittedText[0];
+        switch (command) {
+            case BotConstants.COMMAND_START -> {
+                chatState.setBotState(BotState.INITIAL);
+                chatState.setPlaceName(null);
+                chatState.setTimePeriod(null);
+                chatStateRepository.save(chatState);
+                responseMessage.setText(BotConstants.START_TEXT);
+                responseMessage.setButtons(getMainMenuButtons());
+            }
+            case BotConstants.COMMAND_HELP -> responseMessage.setText(BotConstants.HELP_TEXT);
+            case BotConstants.COMMAND_CANCEL -> {
+                chatState.setBotState(BotState.INITIAL);
+                chatState.setPlaceName(null);
+                chatState.setTimePeriod(null);
+                chatStateRepository.save(chatState);
+                responseMessage.setText("Вы вернулись в основное меню");
+                responseMessage.setButtons(getMainMenuButtons());
+            }
+            case BotConstants.COMMAND_FORECAST_TODAY -> {
+                if (splittedText.length < 2) {
+                    return handleNonCommand(chatId, command);
+                } else {
+                    String place = message.substring(message.indexOf(" ") + 1);
+                    responseMessage.setText(handleTodayForecasts(place));
                 }
             }
-        } else {
-            responseMessage.setText(BotConstants.UNDERSTAND_ONLY_TEXT);
+            case BotConstants.COMMAND_FORECAST_WEEK -> {
+                if (splittedText.length < 2) {
+                    return handleNonCommand(chatId, command);
+                } else {
+                    String place = message.substring(message.indexOf(" ") + 1);
+                    responseMessage.setText(handleWeekForecasts(place));
+                }
+            }
+            default -> {
+                return handleNonCommand(chatId, message);
+            }
         }
         return responseMessage;
     }
@@ -128,9 +117,8 @@ public class MessageHandlerImpl implements MessageHandler {
      * @param text   текст, присланный пользователем
      * @return ответное сообщение
      */
-    private SendMessage handleNonCommand(long chatId, String text) {
-        SendMessage responseMessage = new SendMessage();
-        responseMessage.setChatId(chatId);
+    private BotMessage handleNonCommand(long chatId, String text) {
+        BotMessage responseMessage = new BotMessage();
         ChatState chatState = chatStateRepository.findById(chatId).get();
         BotState currentBotState = chatState.getBotState();
         switch (currentBotState) {
@@ -146,7 +134,7 @@ public class MessageHandlerImpl implements MessageHandler {
                     }
                     chatStateRepository.save(chatState);
                     responseMessage.setText("Введите название места");
-                    responseMessage.setReplyMarkup(getCancelReplyMarkup());
+                    responseMessage.setButtons(getCancelMenuButtons());
                 } else {
                     responseMessage.setText(BotConstants.UNKNOWN_COMMAND);
                 }
@@ -166,7 +154,7 @@ public class MessageHandlerImpl implements MessageHandler {
                 } else {
                     chatState.setBotState(BotState.WAITING_FOR_TIME_PERIOD);
                     responseMessage.setText("Выберите временной период для просмотра (сегодня, завтра, неделя)");
-                    responseMessage.setReplyMarkup(getTimePeriodMenuReplyMarkup());
+                    responseMessage.setButtons(getTimePeriodMenuButtons());
                 }
                 chatStateRepository.save(chatState);
             }
@@ -186,7 +174,7 @@ public class MessageHandlerImpl implements MessageHandler {
                 } else {
                     responseMessage.setText("Введите корректный временной период. " +
                             "Допустимые значения: сегодня, завтра, неделя");
-                    responseMessage.setReplyMarkup(getTimePeriodMenuReplyMarkup());
+                    responseMessage.setButtons(getTimePeriodMenuButtons());
                 }
             }
         }
@@ -237,59 +225,53 @@ public class MessageHandlerImpl implements MessageHandler {
     }
 
     /**
-     * Генерирует встроенную разметку клавиатуры для главного меню
+     * Генерирует кнопки для главного меню
      *
-     * @return встроенная разметка клавиатуры для главного меню
+     * @return кнопки для главного меню
      */
-    private InlineKeyboardMarkup getMainMenuReplyMarkup() {
-        InlineKeyboardMarkup mainMenuMarkup = new InlineKeyboardMarkup();
-        InlineKeyboardButton forecastButton = new InlineKeyboardButton(BotConstants.FORECAST_BUTTON_TEXT);
-        forecastButton.setCallbackData(BotConstants.FORECAST_BUTTON_TEXT);
-        InlineKeyboardButton helpButton = new InlineKeyboardButton(BotConstants.HELP_BUTTON_TEXT);
-        helpButton.setCallbackData(BotConstants.COMMAND_HELP);
-        InlineKeyboardButton cancelButton = new InlineKeyboardButton(BotConstants.CANCEL_BUTTON_TEXT);
-        cancelButton.setCallbackData(BotConstants.COMMAND_CANCEL);
-        List<InlineKeyboardButton> firstRow = List.of(forecastButton);
-        List<InlineKeyboardButton> secondRow = List.of(helpButton, cancelButton);
-        List<List<InlineKeyboardButton>> keyboard = List.of(firstRow, secondRow);
-        mainMenuMarkup.setKeyboard(keyboard);
-        return mainMenuMarkup;
+    private List<Button> getMainMenuButtons() {
+        Button forecastButton = new Button();
+        forecastButton.setText(BotConstants.FORECAST_BUTTON_TEXT);
+        forecastButton.setCallback(BotConstants.FORECAST_BUTTON_TEXT);
+        Button helpButton = new Button();
+        helpButton.setText(BotConstants.HELP_BUTTON_TEXT);
+        helpButton.setCallback(BotConstants.COMMAND_HELP);
+        Button cancelButton = new Button();
+        cancelButton.setText(BotConstants.CANCEL_BUTTON_TEXT);
+        cancelButton.setCallback(BotConstants.COMMAND_CANCEL);
+        return List.of(forecastButton, helpButton, cancelButton);
     }
 
     /**
-     * Генерирует встроенную разметку клавиатуры для меню отмены
+     * Генерирует кнопки для меню отмены
      *
-     * @return встроенная разметка клавиатуры для меню отмены
+     * @return кнопки для меню отмены
      */
-    private InlineKeyboardMarkup getCancelReplyMarkup() {
-        InlineKeyboardMarkup cancelMarkup = new InlineKeyboardMarkup();
-        InlineKeyboardButton cancelButton = new InlineKeyboardButton(BotConstants.CANCEL_BUTTON_TEXT);
-        cancelButton.setCallbackData(BotConstants.COMMAND_CANCEL);
-        List<InlineKeyboardButton> buttons = List.of(cancelButton);
-        List<List<InlineKeyboardButton>> keyboard = List.of(buttons);
-        cancelMarkup.setKeyboard(keyboard);
-        return cancelMarkup;
+    private List<Button> getCancelMenuButtons() {
+        Button cancelButton = new Button();
+        cancelButton.setText(BotConstants.CANCEL_BUTTON_TEXT);
+        cancelButton.setCallback(BotConstants.COMMAND_CANCEL);
+        return List.of(cancelButton);
     }
 
     /**
-     * Генерирует встроенную разметку клавиатуры для меню периода времени
+     * Генерирует кнопки для меню периода времени
      *
-     * @return встроенная разметка клавиатуры для меню периода времени
+     * @return кнопки для меню периода времени
      */
-    private InlineKeyboardMarkup getTimePeriodMenuReplyMarkup() {
-        InlineKeyboardMarkup timePeriodMenu = new InlineKeyboardMarkup();
-        InlineKeyboardButton todayButton = new InlineKeyboardButton(BotConstants.TODAY);
-        todayButton.setCallbackData(BotConstants.TODAY);
-        InlineKeyboardButton tomorrowButton = new InlineKeyboardButton(BotConstants.TOMORROW);
-        tomorrowButton.setCallbackData(BotConstants.TOMORROW);
-        InlineKeyboardButton weekButton = new InlineKeyboardButton(BotConstants.WEEK);
-        weekButton.setCallbackData(BotConstants.WEEK);
-        InlineKeyboardButton cancelButton = new InlineKeyboardButton(BotConstants.CANCEL_BUTTON_TEXT);
-        cancelButton.setCallbackData(BotConstants.COMMAND_CANCEL);
-        List<InlineKeyboardButton> firstRow = List.of(todayButton, tomorrowButton, weekButton);
-        List<InlineKeyboardButton> secondRow = List.of(cancelButton);
-        List<List<InlineKeyboardButton>> keyboard = List.of(firstRow, secondRow);
-        timePeriodMenu.setKeyboard(keyboard);
-        return timePeriodMenu;
+    private List<Button> getTimePeriodMenuButtons() {
+        Button todayButton = new Button();
+        todayButton.setText(BotConstants.TODAY);
+        todayButton.setCallback(BotConstants.TODAY);
+        Button tomorrowButton = new Button();
+        tomorrowButton.setText(BotConstants.TOMORROW);
+        tomorrowButton.setCallback(BotConstants.TOMORROW);
+        Button weekButton = new Button();
+        weekButton.setText(BotConstants.WEEK);
+        weekButton.setCallback(BotConstants.WEEK);
+        Button cancelButton = new Button();
+        cancelButton.setText(BotConstants.CANCEL_BUTTON_TEXT);
+        cancelButton.setCallback(BotConstants.COMMAND_CANCEL);
+        return List.of(todayButton, tomorrowButton, weekButton, cancelButton);
     }
 }

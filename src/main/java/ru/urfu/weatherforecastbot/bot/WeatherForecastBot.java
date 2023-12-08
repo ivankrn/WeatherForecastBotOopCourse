@@ -12,15 +12,19 @@ import org.telegram.telegrambots.meta.api.methods.BotApiMethod;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import org.telegram.telegrambots.updatesreceivers.DefaultBotSession;
 import ru.urfu.weatherforecastbot.config.BotConfig;
+
+import java.util.List;
 
 /**
  * Бот для получения прогноза погоды
  */
 @Component
-public class WeatherForecastBot extends TelegramLongPollingBot {
+public class WeatherForecastBot extends TelegramLongPollingBot implements Bot {
 
     /**
      * Конфигурация бота
@@ -56,14 +60,15 @@ public class WeatherForecastBot extends TelegramLongPollingBot {
     @Override
     public void onUpdateReceived(Update update) {
         if (update.hasMessage()) {
-            SendMessage responseMessage = messageHandler.handle(update.getMessage());
-            executeMessageWithLogging(responseMessage);
+            Message message = update.getMessage();
+            long chatId = message.getChatId();
+            BotMessage responseMessage = messageHandler.handle(chatId, message.getText());
+            sendMessage(chatId, responseMessage);
         } else if (update.hasCallbackQuery()) {
-            Message userMessageWithCallbackData = new Message();
-            userMessageWithCallbackData.setChat(update.getCallbackQuery().getMessage().getChat());
-            userMessageWithCallbackData.setText(update.getCallbackQuery().getData());
-            SendMessage responseMessage = messageHandler.handle(userMessageWithCallbackData);
-            executeMessageWithLogging(responseMessage);
+            long chatId = update.getCallbackQuery().getMessage().getChatId();
+            String text = update.getCallbackQuery().getData();
+            BotMessage responseMessage = messageHandler.handle(chatId, text);
+            sendMessage(chatId, responseMessage);
         }
     }
 
@@ -75,6 +80,15 @@ public class WeatherForecastBot extends TelegramLongPollingBot {
     @Override
     public String getBotUsername() {
         return botConfig.getName();
+    }
+
+    @Override
+    public void sendMessage(long chatId, BotMessage message) {
+        SendMessage sendMessage = new SendMessage();
+        sendMessage.setChatId(chatId);
+        sendMessage.setText(message.getText());
+        sendMessage.setReplyMarkup(convertToTelegramButtons(message.getButtons()));
+        executeMessageWithLogging(sendMessage);
     }
 
     /**
@@ -101,5 +115,24 @@ public class WeatherForecastBot extends TelegramLongPollingBot {
         } catch (TelegramApiException e) {
             throw new RuntimeException(e.getMessage(), e);
         }
+    }
+
+    /**
+     * Преобразует {@link Button кнопки} в {@link InlineKeyboardButton Telegram кнопки}
+     *
+     * @param buttons кнопки
+     * @return Telegram кнопки
+     */
+    private InlineKeyboardMarkup convertToTelegramButtons(List<Button> buttons) {
+        InlineKeyboardMarkup markup = new InlineKeyboardMarkup();
+        List<InlineKeyboardButton> telegramButtons = buttons.stream().map(button -> {
+                    InlineKeyboardButton telegramButton = new InlineKeyboardButton();
+                    telegramButton.setText(button.getText());
+                    telegramButton.setCallbackData(button.getCallback());
+                    return telegramButton;
+                })
+                .toList();
+        markup.setKeyboard(List.of(telegramButtons));
+        return markup;
     }
 }

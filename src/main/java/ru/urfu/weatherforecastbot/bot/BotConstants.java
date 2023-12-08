@@ -55,10 +55,6 @@ public class BotConstants {
                   """;
 
     /**
-     * Понимаю только текст
-     */
-    public static final String UNDERSTAND_ONLY_TEXT = "Извините, я понимаю только текст.";
-    /**
      * Сегодня
      */
     public static final String TODAY = "Сегодня";

@@ -1,16 +1,12 @@
 package ru.urfu.weatherforecastbot.bot;
 
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Chat;
 import org.telegram.telegrambots.meta.api.objects.Message;
-import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
-import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
 import ru.urfu.weatherforecastbot.database.ChatStateRepository;
 import ru.urfu.weatherforecastbot.model.BotState;
 import ru.urfu.weatherforecastbot.model.ChatState;
@@ -27,9 +23,6 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.argThat;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
@@ -54,53 +47,12 @@ class MessageHandlerImplTest {
      * Обработчик сообщений
      */
     private final MessageHandler messageHandler;
-    /**
-     * Сообщение, пришедшее от пользователя и которое требуется обработать
-     */
-    private Message userMessage;
 
     public MessageHandlerImplTest(@Mock WeatherForecastService weatherService,
                                   @Mock ChatStateRepository chatStateRepository) {
         this.weatherService = weatherService;
         this.chatStateRepository = chatStateRepository;
         messageHandler = new MessageHandlerImpl(weatherService, forecastFormatter, chatStateRepository);
-    }
-
-    /**
-     * Подготавливает окружение перед тестами
-     */
-    @BeforeEach
-    void setUp() {
-        userMessage = new Message();
-        Chat userChat = new Chat();
-        long userChatId = 1L;
-        userChat.setId(userChatId);
-        userMessage.setChat(userChat);
-    }
-
-    @Test
-    @DisplayName("Если пользователь прислал не текст, то ответное сообщение должно содержать предупреждение о том, " +
-            "что бот понимает только текст")
-    void whenUserSendsNonText_thenReturnUnderstandOnlyText() {
-        userMessage.setPhoto(List.of());
-
-        SendMessage responseMessage = messageHandler.handle(userMessage);
-
-        assertEquals("Извините, я понимаю только текст.", responseMessage.getText());
-    }
-
-    @Test
-    @DisplayName("Бот должен отвечать именно тому пользователю, от которого пришло сообщение")
-    void whenUserSendsMessage_thenSendMessageToThatUser() {
-        ChatState chatState = new ChatState();
-        chatState.setChatId(userMessage.getChatId());
-        chatState.setBotState(BotState.INITIAL);
-        when(chatStateRepository.findById(userMessage.getChatId())).thenReturn(Optional.of(chatState));
-        userMessage.setText("/start");
-
-        SendMessage responseMessage = messageHandler.handle(userMessage);
-
-        assertEquals(userMessage.getChatId(), Long.parseLong(responseMessage.getChatId()));
     }
 
     @Test
@@ -117,9 +69,8 @@ class MessageHandlerImplTest {
         }
         when(weatherService.getForecast("Екатеринбург", 1)).thenReturn(todayForecast);
         String expected = forecastFormatter.formatForecasts(ForecastTimePeriod.TODAY, todayForecast);
-        userMessage.setText("/info Екатеринбург");
 
-        SendMessage responseMessage = messageHandler.handle(userMessage);
+        BotMessage responseMessage = messageHandler.handle(1L, "/info Екатеринбург");
 
         assertEquals(expected, responseMessage.getText());
     }
@@ -129,11 +80,6 @@ class MessageHandlerImplTest {
             "отправит прогноз, при этом временной период не будет запрошен")
     void givenNoPlaceName_whenTodayForecast_thenAskOnlyPlace() {
         long chatId = 1L;
-        Chat chat = new Chat();
-        chat.setId(chatId);
-        Message forecastTodayMessage = new Message();
-        forecastTodayMessage.setChat(chat);
-        forecastTodayMessage.setText("/info");
         LocalDateTime today = LocalDateTime.now();
         int hours = 24;
         List<WeatherForecast> todayForecast = new ArrayList<>(hours);
@@ -149,18 +95,15 @@ class MessageHandlerImplTest {
         chatState.setBotState(BotState.INITIAL);
         when(chatStateRepository.findById(chatId)).thenReturn(Optional.of(chatState));
 
-        SendMessage forecastTodayMessageResponse = messageHandler.handle(forecastTodayMessage);
+        BotMessage forecastTodayMessageResponse = messageHandler.handle(chatId, "/info");
         assertEquals("Введите название места", forecastTodayMessageResponse.getText());
         assertEquals(BotState.WAITING_FOR_PLACE_NAME, chatState.getBotState());
-        List<InlineKeyboardButton> forecastWeekResponseButtons = getMessageButtons(forecastTodayMessageResponse);
-        assertEquals(1, forecastWeekResponseButtons.size());
-        assertTrue(forecastWeekResponseButtons.stream().anyMatch(button -> button.getText().equals("Отмена")));
+        List<Button> forecastTodayMessageButtons = forecastTodayMessageResponse.getButtons();
+        assertEquals(1, forecastTodayMessageButtons.size());
+        assertEquals("Отмена", forecastTodayMessageButtons.get(0).getText());
+        assertEquals("/cancel", forecastTodayMessageButtons.get(0).getCallback());
 
-        Message placeNameMessage = new Message();
-        placeNameMessage.setChat(chat);
-        placeNameMessage.setText("Екатеринбург");
-
-        SendMessage placeNameMessageResponse = messageHandler.handle(placeNameMessage);
+        BotMessage placeNameMessageResponse = messageHandler.handle(chatId, "Екатеринбург");
         assertEquals(expected, placeNameMessageResponse.getText());
         assertEquals(BotState.INITIAL, chatState.getBotState());
     }
@@ -169,10 +112,9 @@ class MessageHandlerImplTest {
     @DisplayName("Если не удается найти указанное место, то ответное сообщение должно содержать " +
             "предупреждение о том, что место не найдено")
     void givenNotFoundPlace_whenTodayForecast_thenReturnNotFound() {
-        userMessage.setText("/info там_где_нас_нет");
         when(weatherService.getForecast("там_где_нас_нет", 1)).thenReturn(List.of());
 
-        SendMessage responseMessage = messageHandler.handle(userMessage);
+        BotMessage responseMessage = messageHandler.handle(1L, "/info там_где_нас_нет");
 
         assertEquals("Извините, данное место не найдено.", responseMessage.getText());
     }
@@ -181,13 +123,13 @@ class MessageHandlerImplTest {
     @DisplayName("При вводе неизвестной команды ответное сообщение должно содержать предупреждение о том, что " +
             "бот не знает такой команды")
     void givenUnknownCommand_thenReturnUnknownCommand() {
+        long chatId = 1L;
         ChatState chatState = new ChatState();
-        chatState.setChatId(userMessage.getChatId());
+        chatState.setChatId(chatId);
         chatState.setBotState(BotState.INITIAL);
-        when(chatStateRepository.findById(userMessage.getChatId())).thenReturn(Optional.of(chatState));
-        userMessage.setText("/some_unknown_command");
+        when(chatStateRepository.findById(chatId)).thenReturn(Optional.of(chatState));
 
-        SendMessage responseMessage = messageHandler.handle(userMessage);
+        BotMessage responseMessage = messageHandler.handle(chatId, "/some_unknown_command");
 
         assertEquals("Извините, я не знаю такой команды.", responseMessage.getText());
     }
@@ -249,15 +191,13 @@ class MessageHandlerImplTest {
         when(chatStateRepository.findById(typicalUserChatId))
                 .thenReturn(Optional.of(typicalUserChatState));
 
-        SendMessage replyToMarsDweller = messageHandler.handle(marsDwellerMessage);
-        SendMessage replyToInstructionsBookworm = messageHandler.handle(instructionsBookwormMessage);
-        SendMessage replyToTypicalUser = messageHandler.handle(typicalUserMessage);
+        BotMessage replyToMarsDweller = messageHandler.handle(marsDwellerChatId, "/info Марс");
+        BotMessage replyToInstructionsBookworm =
+                messageHandler.handle(instructionsBookwormChatId, "/some_unknown_command Москва");
+        BotMessage replyToTypicalUser = messageHandler.handle(typicalUserChatId, "/info Нижний Новгород");
 
-        assertEquals(marsDwellerChatId, Long.parseLong(replyToMarsDweller.getChatId()));
         assertEquals(expectedMarsForecast, replyToMarsDweller.getText());
-        assertEquals(instructionsBookwormChatId, Long.parseLong(replyToInstructionsBookworm.getChatId()));
         assertEquals("Извините, я не знаю такой команды.", replyToInstructionsBookworm.getText());
-        assertEquals(typicalUserChatId, Long.parseLong(replyToTypicalUser.getChatId()));
         // проверяем, что корректно работает с названиями, содержащие пробелы
         assertEquals(expectedNizhnyNovgorodForecast, replyToTypicalUser.getText());
     }
@@ -280,9 +220,8 @@ class MessageHandlerImplTest {
         when(weatherService.getForecast("Екатеринбург", 7))
                 .thenReturn(weekForecast);
         String expected = forecastFormatter.formatForecasts(ForecastTimePeriod.WEEK, weekForecast);
-        userMessage.setText("/info_week Екатеринбург");
 
-        SendMessage responseMessage = messageHandler.handle(userMessage);
+        BotMessage responseMessage = messageHandler.handle(1L, "/info_week Екатеринбург");
 
         assertEquals(expected, responseMessage.getText());
     }
@@ -291,10 +230,9 @@ class MessageHandlerImplTest {
     @DisplayName("При запросе прогноза погоды на неделю вперед для ненайденного города " +
             "должно возвращаться сообщение об ошибке")
     void givenNonExistentPlace_whenWeekForecast_thenErrorMessage() {
-        userMessage.setText("/info_week там_где_нас_нет");
         when(weatherService.getForecast("там_где_нас_нет", 7)).thenReturn(List.of());
 
-        SendMessage responseMessage = messageHandler.handle(userMessage);
+        BotMessage responseMessage = messageHandler.handle(1L, "/info_week там_где_нас_нет");
 
         assertEquals("Извините, данное место не найдено.", responseMessage.getText());
     }
@@ -304,11 +242,6 @@ class MessageHandlerImplTest {
             "чего отправит прогноз погоды, при этом временной период не будет запрошен")
     void givenNoPlaceName_whenWeekForecast_thenAskOnlyPlace() {
         long chatId = 1L;
-        Chat chat = new Chat();
-        chat.setId(chatId);
-        Message forecastWeekMessage = new Message();
-        forecastWeekMessage.setChat(chat);
-        forecastWeekMessage.setText("/info_week");
         LocalDateTime now = LocalDateTime.now();
         int days = 7;
         int hourInterval = 4;
@@ -327,18 +260,15 @@ class MessageHandlerImplTest {
         chatState.setBotState(BotState.INITIAL);
         when(chatStateRepository.findById(chatId)).thenReturn(Optional.of(chatState));
 
-        SendMessage forecastWeekMessageResponse = messageHandler.handle(forecastWeekMessage);
+        BotMessage forecastWeekMessageResponse = messageHandler.handle(chatId, "/info_week");
         assertEquals("Введите название места", forecastWeekMessageResponse.getText());
         assertEquals(BotState.WAITING_FOR_PLACE_NAME, chatState.getBotState());
-        List<InlineKeyboardButton> forecastWeekResponseButtons = getMessageButtons(forecastWeekMessageResponse);
-        assertEquals(1, forecastWeekResponseButtons.size());
-        assertTrue(forecastWeekResponseButtons.stream().anyMatch(button -> button.getText().equals("Отмена")));
+        List<Button> forecastWeekMessageButtons = forecastWeekMessageResponse.getButtons();
+        assertEquals(1, forecastWeekMessageButtons.size());
+        assertEquals("Отмена", forecastWeekMessageButtons.get(0).getText());
+        assertEquals("/cancel", forecastWeekMessageButtons.get(0).getCallback());
 
-        Message placeNameMessage = new Message();
-        placeNameMessage.setChat(chat);
-        placeNameMessage.setText("Екатеринбург");
-
-        SendMessage placeNameMessageResponse = messageHandler.handle(placeNameMessage);
+        BotMessage placeNameMessageResponse = messageHandler.handle(chatId, "Екатеринбург");
         assertEquals(expected, placeNameMessageResponse.getText());
         assertEquals(BotState.INITIAL, chatState.getBotState());
     }
@@ -346,14 +276,14 @@ class MessageHandlerImplTest {
     @Test
     @DisplayName("При вводе команды \"/start\" пользователю должно отобразиться приветствие")
     void givenStartCommand_thenReturnHelloMessage() {
+        long chatId = 1L;
         ChatState chatState = new ChatState();
-        chatState.setChatId(userMessage.getChatId());
+        chatState.setChatId(chatId);
         chatState.setBotState(BotState.INITIAL);
-        when(chatStateRepository.findById(userMessage.getChatId())).thenReturn(Optional.of(chatState));
-        userMessage.setText("/start");
+        when(chatStateRepository.findById(chatId)).thenReturn(Optional.of(chatState));
 
-        SendMessage responseMessage = messageHandler.handle(userMessage);
-        List<InlineKeyboardButton> responseMessageButtons = getMessageButtons(responseMessage);
+        BotMessage responseMessage = messageHandler.handle(chatId, "/start");
+        List<Button> responseButtons = responseMessage.getButtons();
 
         assertEquals("""
                         Здравствуйте! Я бот для просмотра прогноза погоды. Доступны следующие команды:
@@ -363,18 +293,19 @@ class MessageHandlerImplTest {
                         /info_week <название населенного пункта> - вывести прогноз погоды для <название населенного пункта> на неделю вперёд.
                         """,
                 responseMessage.getText());
-        assertEquals(3, responseMessageButtons.size());
-        assertTrue(responseMessageButtons.stream().anyMatch(button -> button.getText().equals("Узнать прогноз")));
-        assertTrue(responseMessageButtons.stream().anyMatch(button -> button.getText().equals("Помощь")));
-        assertTrue(responseMessageButtons.stream().anyMatch(button -> button.getText().equals("Отмена")));
+        assertEquals(3, responseButtons.size());
+        assertEquals("Узнать прогноз", responseButtons.get(0).getText());
+        assertEquals("Узнать прогноз", responseButtons.get(0).getCallback());
+        assertEquals("Помощь", responseButtons.get(1).getText());
+        assertEquals("/help", responseButtons.get(1).getCallback());
+        assertEquals("Отмена", responseButtons.get(2).getText());
+        assertEquals("/cancel", responseButtons.get(2).getCallback());
     }
 
     @Test
     @DisplayName("При вводе команды \"/help\" пользователю должно отобразиться сообщение помощи")
     void givenHelpCommand_thenReturnHelpMessage() {
-        userMessage.setText("/help");
-
-        SendMessage responseMessage = messageHandler.handle(userMessage);
+        BotMessage responseMessage = messageHandler.handle(1L, "/help");
 
         assertEquals("""
                         Вы зашли в меню помощи. Для вас доступны следующие команды:
@@ -391,11 +322,6 @@ class MessageHandlerImplTest {
             "уточнить все детали, после чего прислать соответствующий прогноз погоды")
     void whenForecast_thenAskDetails() {
         long chatId = 1L;
-        Chat chat = new Chat();
-        chat.setId(chatId);
-        Message forecastMessage = new Message();
-        forecastMessage.setChat(chat);
-        forecastMessage.setText("Узнать прогноз");
         LocalDateTime today = LocalDateTime.now();
         int hours = 24;
         List<WeatherForecast> todayForecast = new ArrayList<>(hours);
@@ -411,30 +337,30 @@ class MessageHandlerImplTest {
         chatState.setBotState(BotState.INITIAL);
         when(chatStateRepository.findById(chatId)).thenReturn(Optional.of(chatState));
 
-        SendMessage forecastMessageResponse = messageHandler.handle(forecastMessage);
+        BotMessage forecastMessageResponse = messageHandler.handle(chatId, "Узнать прогноз");
         assertEquals("Введите название места", forecastMessageResponse.getText());
         assertEquals(BotState.WAITING_FOR_PLACE_NAME, chatState.getBotState());
+        List<Button> forecastMessageButtons = forecastMessageResponse.getButtons();
+        assertEquals(1, forecastMessageButtons.size());
+        assertEquals("Отмена", forecastMessageButtons.get(0).getText());
+        assertEquals("/cancel", forecastMessageButtons.get(0).getCallback());
 
-        Message placeNameMessage = new Message();
-        placeNameMessage.setChat(chat);
-        placeNameMessage.setText("Екатеринбург");
-
-        SendMessage placeNameMessageResponse = messageHandler.handle(placeNameMessage);
-        List<InlineKeyboardButton> placeNameMessageButtons = getMessageButtons(placeNameMessageResponse);
+        BotMessage placeNameMessageResponse = messageHandler.handle(chatId, "Екатеринбург");
         assertEquals("Выберите временной период для просмотра (сегодня, завтра, неделя)",
                 placeNameMessageResponse.getText());
+        List<Button> placeNameMessageButtons = placeNameMessageResponse.getButtons();
         assertEquals(BotState.WAITING_FOR_TIME_PERIOD, chatState.getBotState());
         assertEquals(4, placeNameMessageButtons.size());
-        assertTrue(placeNameMessageButtons.stream().anyMatch(button -> button.getText().equals("Сегодня")));
-        assertTrue(placeNameMessageButtons.stream().anyMatch(button -> button.getText().equals("Завтра")));
-        assertTrue(placeNameMessageButtons.stream().anyMatch(button -> button.getText().equals("Неделя")));
-        assertTrue(placeNameMessageButtons.stream().anyMatch(button -> button.getText().equals("Отмена")));
+        assertEquals("Сегодня", placeNameMessageButtons.get(0).getText());
+        assertEquals("Сегодня", placeNameMessageButtons.get(0).getCallback());
+        assertEquals("Завтра", placeNameMessageButtons.get(1).getText());
+        assertEquals("Завтра", placeNameMessageButtons.get(1).getCallback());
+        assertEquals("Неделя", placeNameMessageButtons.get(2).getText());
+        assertEquals("Неделя", placeNameMessageButtons.get(2).getCallback());
+        assertEquals("Отмена", placeNameMessageButtons.get(3).getText());
+        assertEquals("/cancel", placeNameMessageButtons.get(3).getCallback());
 
-        Message timePeriodMessage = new Message();
-        timePeriodMessage.setChat(chat);
-        timePeriodMessage.setText("сегодня");
-
-        SendMessage timePeriodMessageResponse = messageHandler.handle(timePeriodMessage);
+        BotMessage timePeriodMessageResponse = messageHandler.handle(chatId, "Сегодня");
         assertEquals(expected, timePeriodMessageResponse.getText());
         assertEquals(BotState.INITIAL, chatState.getBotState());
     }
@@ -444,34 +370,27 @@ class MessageHandlerImplTest {
             "сообщение должно содержать просьбу ввести временной период повторно")
     void givenUserSendsWrongTimePeriod_whenForecast_thenAskTimePeriodAgain() {
         long chatId = 1L;
-        Chat chat = new Chat();
-        chat.setId(chatId);
-        Message forecastMessage = new Message();
-        forecastMessage.setChat(chat);
-        forecastMessage.setText("Узнать прогноз");
-        Message placeNameMessage = new Message();
-        placeNameMessage.setChat(chat);
-        placeNameMessage.setText("Екатеринбург");
-        Message wrongTimePeriodMessage = new Message();
-        wrongTimePeriodMessage.setChat(chat);
-        wrongTimePeriodMessage.setText("привет");
         ChatState chatState = new ChatState();
         chatState.setChatId(chatId);
         chatState.setBotState(BotState.INITIAL);
         when(chatStateRepository.findById(chatId)).thenReturn(Optional.of(chatState));
 
-        messageHandler.handle(forecastMessage);
-        messageHandler.handle(placeNameMessage);
-        SendMessage wrongTimePeriodMessageResponse = messageHandler.handle(wrongTimePeriodMessage);
+        messageHandler.handle(chatId, "Узнать прогноз");
+        messageHandler.handle(chatId, "Екатеринбург");
+        BotMessage wrongTimePeriodMessageResponse = messageHandler.handle(chatId, "привет");
 
         assertEquals("Введите корректный временной период. Допустимые значения: сегодня, завтра, неделя",
                 wrongTimePeriodMessageResponse.getText());
-        List<InlineKeyboardButton> responseMessageButtons = getMessageButtons(wrongTimePeriodMessageResponse);
+        List<Button> responseMessageButtons = wrongTimePeriodMessageResponse.getButtons();
         assertEquals(4, responseMessageButtons.size());
-        assertTrue(responseMessageButtons.stream().anyMatch(button -> button.getText().equals("Сегодня")));
-        assertTrue(responseMessageButtons.stream().anyMatch(button -> button.getText().equals("Завтра")));
-        assertTrue(responseMessageButtons.stream().anyMatch(button -> button.getText().equals("Неделя")));
-        assertTrue(responseMessageButtons.stream().anyMatch(button -> button.getText().equals("Отмена")));
+        assertEquals("Сегодня", responseMessageButtons.get(0).getText());
+        assertEquals("Сегодня", responseMessageButtons.get(0).getCallback());
+        assertEquals("Завтра", responseMessageButtons.get(1).getText());
+        assertEquals("Завтра", responseMessageButtons.get(1).getCallback());
+        assertEquals("Неделя", responseMessageButtons.get(2).getText());
+        assertEquals("Неделя", responseMessageButtons.get(2).getCallback());
+        assertEquals("Отмена", responseMessageButtons.get(3).getText());
+        assertEquals("/cancel", responseMessageButtons.get(3).getCallback());
     }
 
     @Test
@@ -479,40 +398,23 @@ class MessageHandlerImplTest {
             "возврате в меню")
     void whenCancel_thenReturnToMenu() {
         long chatId = 1L;
-        Chat chat = new Chat();
-        chat.setId(chatId);
-        Message forecastMessage = new Message();
-        forecastMessage.setChat(chat);
-        forecastMessage.setText("Узнать прогноз");
-        Message cancelMessage = new Message();
-        cancelMessage.setChat(chat);
-        cancelMessage.setText("/cancel");
         ChatState chatState = new ChatState();
         chatState.setChatId(chatId);
         chatState.setBotState(BotState.INITIAL);
         when(chatStateRepository.findById(chatId)).thenReturn(Optional.of(chatState));
 
-        messageHandler.handle(forecastMessage);
-        SendMessage responseMessage = messageHandler.handle(cancelMessage);
+        messageHandler.handle(chatId, "/info");
+        BotMessage responseMessage = messageHandler.handle(chatId, "/cancel");
 
         assertEquals("Вы вернулись в основное меню", responseMessage.getText());
-        List<InlineKeyboardButton> responseMessageButtons = getMessageButtons(responseMessage);
-        assertEquals(3, responseMessageButtons.size());
-        assertTrue(responseMessageButtons.stream().anyMatch(button -> button.getText().equals("Узнать прогноз")));
-        assertTrue(responseMessageButtons.stream().anyMatch(button -> button.getText().equals("Помощь")));
-        assertTrue(responseMessageButtons.stream().anyMatch(button -> button.getText().equals("Отмена")));
+        List<Button> responseButtons = responseMessage.getButtons();
+        assertEquals(3, responseButtons.size());
+        assertEquals("Узнать прогноз", responseButtons.get(0).getText());
+        assertEquals("Узнать прогноз", responseButtons.get(0).getCallback());
+        assertEquals("Помощь", responseButtons.get(1).getText());
+        assertEquals("/help", responseButtons.get(1).getCallback());
+        assertEquals("Отмена", responseButtons.get(2).getText());
+        assertEquals("/cancel", responseButtons.get(2).getCallback());
     }
 
-    /**
-     * Возвращает список кнопок, прикрепленных к сообщению
-     *
-     * @param message сообщение
-     * @return список кнопок, прикрепленных к сообщению
-     */
-    private List<InlineKeyboardButton> getMessageButtons(SendMessage message) {
-        InlineKeyboardMarkup messageMarkup = (InlineKeyboardMarkup) message.getReplyMarkup();
-        return messageMarkup.getKeyboard().stream()
-                .flatMap(List::stream)
-                .toList();
-    }
 }
