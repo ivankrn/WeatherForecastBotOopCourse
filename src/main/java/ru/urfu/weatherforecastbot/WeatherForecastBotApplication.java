@@ -9,13 +9,13 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 @SpringBootApplication
 public class WeatherForecastBotApplication {
 
-	/**
-	 * Точка входа, запускающая приложение Spring
-	 *
-	 * @param args аргументы командной строки
-	 */
-	public static void main(String[] args) {
-		SpringApplication.run(WeatherForecastBotApplication.class, args);
-	}
+    /**
+     * Точка входа, запускающая приложение Spring
+     *
+     * @param args аргументы командной строки
+     */
+    public static void main(String[] args) {
+        SpringApplication.run(WeatherForecastBotApplication.class, args);
+    }
 
 }

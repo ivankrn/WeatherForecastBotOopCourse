@@ -1,4 +1,4 @@
-package ru.urfu.weatherforecastbot.model;
+package ru.urfu.weatherforecastbot.bot.state;
 
 /**
  * Состояние бота
@@ -15,5 +15,13 @@ public enum BotState {
     /**
      * Ожидание выбора временного периода для прогноза погоды
      */
-    WAITING_FOR_TIME_PERIOD
+    WAITING_FOR_TIME_PERIOD,
+    /**
+     * Ожидание ввода места для прогноза погоды на сегодня
+     */
+    WAITING_FOR_TODAY_FORECAST_PLACE_NAME,
+    /**
+     * Ожидание ввода места для прогноза погоды на неделю
+     */
+    WAITING_FOR_WEEK_FORECAST_PLACE_NAME
 }

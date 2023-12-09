@@ -1,16 +1,18 @@
 package ru.urfu.weatherforecastbot.model;
 
-import jakarta.persistence.*;
-import ru.urfu.weatherforecastbot.bot.state.BotState;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 
 import java.util.Objects;
 
 /**
- * Состояние чата
+ * Контекст чата
  */
 @Entity
-@Table(name = "chat_state")
-public class ChatState {
+@Table(name = "chat_context")
+public class ChatContext {
 
     /**
      * ID чата
@@ -20,10 +22,10 @@ public class ChatState {
     private long chatId;
 
     /**
-     * Состояние бота
+     * Место прогноза погоды (если пользователь в состоянии запроса погоды)
      */
-    @Enumerated
-    private BotState botState;
+    @Column(name = "place_name")
+    private String placeName;
 
     /**
      * Возвращает ID чата
@@ -44,28 +46,28 @@ public class ChatState {
     }
 
     /**
-     * Возвращает состояние бота
+     * Возвращает название места
      *
-     * @return состояние бота
+     * @return название места
      */
-    public BotState getBotState() {
-        return botState;
+    public String getPlaceName() {
+        return placeName;
     }
 
     /**
-     * Устанавливает состояние бота
+     * Устанавливает название места
      *
-     * @param botState состояние бота
+     * @param placeName название места
      */
-    public void setBotState(BotState botState) {
-        this.botState = botState;
+    public void setPlaceName(String placeName) {
+        this.placeName = placeName;
     }
 
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        ChatState chatContext = (ChatState) o;
+        ChatContext chatContext = (ChatContext) o;
         return chatId == chatContext.chatId;
     }
 

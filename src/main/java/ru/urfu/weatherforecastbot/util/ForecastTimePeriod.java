@@ -1,19 +1,30 @@
 package ru.urfu.weatherforecastbot.util;
 
 /**
- * Временной период для форматирования
+ * Временной период
  */
 public enum ForecastTimePeriod {
+
     /**
      * Сегодня
      */
-    TODAY,
+    TODAY("Сегодня"),
     /**
      * Завтра
      */
-    TOMORROW,
+    TOMORROW("Завтра"),
     /**
      * Неделя
      */
-    WEEK
+    WEEK("Неделя");
+
+    private final String text;
+
+    ForecastTimePeriod(String text) {
+        this.text = text;
+    }
+
+    public String getText() {
+        return text;
+    }
 }

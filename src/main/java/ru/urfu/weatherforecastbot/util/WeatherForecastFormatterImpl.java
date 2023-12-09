@@ -100,10 +100,9 @@ public class WeatherForecastFormatterImpl implements WeatherForecastFormatter {
      * @return прогноз погоды в виде строки
      */
     private String formatWeatherForecast(WeatherForecast forecast) {
-        String sb = timeFormatter.format(forecast.dateTime()) + ": " +
+        return timeFormatter.format(forecast.dateTime()) + ": " +
                 forecast.temperature() + CELSIUS_SYMBOL +
                 " (по ощущению " + forecast.feelsLikeTemperature() + CELSIUS_SYMBOL + ")";
-        return sb;
     }
 
     /**
