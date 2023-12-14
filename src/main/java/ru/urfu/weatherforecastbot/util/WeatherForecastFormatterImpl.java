@@ -10,19 +10,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-/**
- * Форматировщик прогноза погоды в удобочитаемый вид
- */
-public class WeatherForecastFormatterImpl {
+public class WeatherForecastFormatterImpl implements WeatherForecastFormatter {
 
-    /**
-     * Форматировщик времени для форматирования по часам
-     */
-    private final DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("HH-mm");
-    /**
-     * Форматировщик даты для форматирования на неделю
-     */
-    private final DateTimeFormatter weekDateFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy");
     /**
      * Сообщение исключения при пустом списке прогнозов
      */
@@ -43,52 +32,52 @@ public class WeatherForecastFormatterImpl {
      * Символ градусов цельсия
      */
     private static final String CELSIUS_SYMBOL = "°C";
-
     /**
-     * Форматирует прогнозы погоды на сегодня
-     *
-     * @param forecasts список прогнозов погоды на сегодня
-     * @return прогнозы погоды на сегодня в виде строки
-     * @throws IllegalArgumentException если список прогнозов погоды пуст или содержит прогнозы с разными местами
+     * Форматировщик времени для форматирования по часам
      */
-    public String formatTodayForecast(List<WeatherForecast> forecasts) throws IllegalArgumentException {
-        if (forecasts.isEmpty()) {
-            throw new IllegalArgumentException(EMPTY_FORECASTS_EXCEPTION_MESSAGE);
+    private final DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("HH-mm");
+    /**
+     * Форматировщик даты для форматирования на неделю
+     */
+    private final DateTimeFormatter weekDateFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy");
+
+    @Override
+    public String formatForecasts(ForecastTimePeriod timePeriod, List<WeatherForecast> forecasts)
+            throws IllegalArgumentException {
+        validateForecasts(forecasts);
+        String period = null;
+        String formattedForecasts = null;
+        switch (timePeriod) {
+            case WEEK -> {
+                period = "на неделю";
+                formattedForecasts = formatSeveralDaysForecast(forecasts);
+            }
+            case TODAY -> {
+                period = "на сегодня";
+                formattedForecasts = formatWeatherForecasts(forecasts);
+            }
+            case TOMORROW -> {
+                period = "на завтра";
+                formattedForecasts = formatWeatherForecasts(forecasts);
+            }
         }
-        if (hasDifferentPlaces(forecasts)) {
-            throw new IllegalArgumentException(FORECASTS_WITH_DIFFERENT_PLACES_EXCEPTION_MESSAGE);
-        }
-        String placeName = forecasts.get(0).place().name();
-        return THERMOMETER_EMOJI + " Прогноз погоды на сегодня (%s):\n\n%s"
-                .formatted(placeName, formatWeatherForecasts(forecasts));
+        String header = THERMOMETER_EMOJI + " Прогноз погоды %s (%s):"
+                .formatted(period, forecasts.get(0).place().name());
+        return header + "\n\n" + formattedForecasts;
     }
 
-    /**
-     * Форматирует прогнозы погоды на неделю вперед каждые 4 часа
-     *
-     * @param forecasts список прогнозов погоды на неделю вперед
-     * @return прогнозы погоды на неделю вперед в виде строки
-     * @throws IllegalArgumentException если список прогнозов погоды пуст или содержит прогнозы с разными местами
-     */
-    public String formatWeekForecast(List<WeatherForecast> forecasts) throws IllegalArgumentException {
-        if (forecasts.isEmpty()) {
-            throw new IllegalArgumentException(EMPTY_FORECASTS_EXCEPTION_MESSAGE);
-        }
-        if (hasDifferentPlaces(forecasts)) {
-            throw new IllegalArgumentException(FORECASTS_WITH_DIFFERENT_PLACES_EXCEPTION_MESSAGE);
-        }
+    private String formatSeveralDaysForecast(List<WeatherForecast> forecasts) {
         Map<LocalDate, List<WeatherForecast>> forecastsByDate = forecasts.stream()
                 .collect(Collectors.groupingBy(weatherForecast -> weatherForecast.dateTime().toLocalDate()));
 
         List<LocalDate> sortedDates = new ArrayList<>(forecastsByDate.keySet());
         Collections.sort(sortedDates);
 
-        String placeName = forecasts.get(0).place().name();
-        StringBuilder sb = new StringBuilder(THERMOMETER_EMOJI +
-                " Прогноз погоды на неделю вперед (%s):".formatted(placeName));
+        StringBuilder sb = new StringBuilder();
 
-        for (LocalDate date : sortedDates) {
-            sb.append("\n\n").append(weekDateFormatter.format(date)).append(":\n");
+        for (int i = 0; i < sortedDates.size(); i++) {
+            LocalDate date = sortedDates.get(i);
+            sb.append(weekDateFormatter.format(date)).append(":\n");
 
             List<WeatherForecast> dateForecasts = forecastsByDate.get(date);
             String formattedForecasts = formatWeatherForecasts(dateForecasts.stream()
@@ -96,6 +85,9 @@ public class WeatherForecastFormatterImpl {
                     .toList());
 
             sb.append(formattedForecasts);
+            if (i < sortedDates.size() - 1) {
+                sb.append("\n\n");
+            }
         }
 
         return sb.toString();
@@ -108,10 +100,9 @@ public class WeatherForecastFormatterImpl {
      * @return прогноз погоды в виде строки
      */
     private String formatWeatherForecast(WeatherForecast forecast) {
-        String sb = timeFormatter.format(forecast.dateTime()) + ": " +
+        return timeFormatter.format(forecast.dateTime()) + ": " +
                 forecast.temperature() + CELSIUS_SYMBOL +
                 " (по ощущению " + forecast.feelsLikeTemperature() + CELSIUS_SYMBOL + ")";
-        return sb;
     }
 
     /**
@@ -122,6 +113,21 @@ public class WeatherForecastFormatterImpl {
      */
     private String formatWeatherForecasts(List<WeatherForecast> forecasts) {
         return forecasts.stream().map(this::formatWeatherForecast).collect(Collectors.joining("\n"));
+    }
+
+    /**
+     * Проверяет корректность списка прогнозов погоды
+     *
+     * @param forecasts список прогнозов погоды
+     * @throws IllegalArgumentException при ошибке валидации
+     */
+    private void validateForecasts(List<WeatherForecast> forecasts) throws IllegalArgumentException {
+        if (forecasts.isEmpty()) {
+            throw new IllegalArgumentException(EMPTY_FORECASTS_EXCEPTION_MESSAGE);
+        }
+        if (hasDifferentPlaces(forecasts)) {
+            throw new IllegalArgumentException(FORECASTS_WITH_DIFFERENT_PLACES_EXCEPTION_MESSAGE);
+        }
     }
 
     /**
@@ -137,4 +143,5 @@ public class WeatherForecastFormatterImpl {
         }
         return forecasts.stream().anyMatch(forecast -> forecast.place() != forecasts.get(0).place());
     }
+
 }
