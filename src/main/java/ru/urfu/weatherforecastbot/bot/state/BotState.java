@@ -23,5 +23,17 @@ public enum BotState {
     /**
      * Ожидание ввода места для прогноза погоды на неделю
      */
-    WAITING_FOR_WEEK_FORECAST_PLACE_NAME
+    WAITING_FOR_WEEK_FORECAST_PLACE_NAME,
+    /**
+     * Ожидание ввода места для создания напоминания
+     */
+    WAITING_FOR_ADD_REMINDER_PLACE_NAME,
+    /**
+     * Ожидание ввода времени для создания напоминания
+     */
+    WAITING_FOR_ADD_REMINDER_TIME,
+    /**
+     * Ожидание ввода позиции напоминания, которое надо удалить
+     */
+    WAITING_FOR_REMINDER_POSITION_TO_DELETE
 }

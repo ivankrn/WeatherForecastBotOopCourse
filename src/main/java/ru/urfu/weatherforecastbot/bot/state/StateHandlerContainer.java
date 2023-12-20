@@ -2,6 +2,7 @@ package ru.urfu.weatherforecastbot.bot.state;
 
 import ru.urfu.weatherforecastbot.bot.state.handler.*;
 import ru.urfu.weatherforecastbot.database.ChatContextRepository;
+import ru.urfu.weatherforecastbot.service.ReminderService;
 import ru.urfu.weatherforecastbot.service.WeatherForecastRequestHandler;
 
 import java.util.HashMap;
@@ -23,10 +24,12 @@ public class StateHandlerContainer {
      * @param weatherForecastRequestHandler обработчик запросов прогнозы погоды
      * @param botStateManager               менеджер состояний бота
      * @param chatContextRepository         репозиторий контекстов чатов
+     * @param reminderService               сервис для управления напоминаниями
      */
     public StateHandlerContainer(WeatherForecastRequestHandler weatherForecastRequestHandler,
                                  BotStateManager botStateManager,
-                                 ChatContextRepository chatContextRepository) {
+                                 ChatContextRepository chatContextRepository,
+                                 ReminderService reminderService) {
         stateHandlers.put(BotState.INITIAL, new InitialStateHandler(botStateManager));
         stateHandlers.put(BotState.WAITING_FOR_PLACE_NAME,
                 new WaitingForPlaceNameStateHandler(botStateManager, chatContextRepository));
@@ -39,6 +42,12 @@ public class StateHandlerContainer {
         stateHandlers.put(BotState.WAITING_FOR_WEEK_FORECAST_PLACE_NAME, new
                 WaitingForWeekPlaceNameStateHandler(weatherForecastRequestHandler,
                 botStateManager, chatContextRepository));
+        stateHandlers.put(BotState.WAITING_FOR_ADD_REMINDER_PLACE_NAME,
+                new WaitingForAddReminderPlaceNameStateHandler(botStateManager, chatContextRepository));
+        stateHandlers.put(BotState.WAITING_FOR_ADD_REMINDER_TIME,
+                new WaitingForAddReminderTimeStateHandler(reminderService, botStateManager, chatContextRepository));
+        stateHandlers.put(BotState.WAITING_FOR_REMINDER_POSITION_TO_DELETE,
+                new WaitingForReminderPositionToDeleteStateHandler(reminderService, botStateManager));
     }
 
     /**

@@ -4,6 +4,7 @@ import ru.urfu.weatherforecastbot.bot.BotConstants;
 import ru.urfu.weatherforecastbot.bot.command.handler.*;
 import ru.urfu.weatherforecastbot.bot.state.BotStateManager;
 import ru.urfu.weatherforecastbot.database.ChatContextRepository;
+import ru.urfu.weatherforecastbot.service.ReminderService;
 import ru.urfu.weatherforecastbot.service.WeatherForecastRequestHandler;
 
 import java.util.HashMap;
@@ -29,10 +30,12 @@ public class CommandContainer {
      * @param weatherForecastRequestHandler обработчик запросов прогнозов погоды
      * @param chatContextRepository         репозиторий контекстов чатов
      * @param botStateManager               менеджер состояний бота
+     * @param reminderService               сервис для управления напоминаниями
      */
     public CommandContainer(WeatherForecastRequestHandler weatherForecastRequestHandler,
                             ChatContextRepository chatContextRepository,
-                            BotStateManager botStateManager) {
+                            BotStateManager botStateManager,
+                            ReminderService reminderService) {
         addCommandHandler(BotConstants.COMMAND_START,
                 new StartCommandHandler(chatContextRepository, botStateManager), 0);
         addCommandHandler(BotConstants.COMMAND_HELP, new HelpCommandHandler(), 0);
@@ -42,6 +45,10 @@ public class CommandContainer {
                 new ForecastWeekCommandHandler(weatherForecastRequestHandler), 1);
         addCommandHandler(BotConstants.COMMAND_CANCEL,
                 new CancelCommandHandler(chatContextRepository, botStateManager), 0);
+        addCommandHandler(BotConstants.COMMAND_SUBSCRIBE,
+                new SubscribeCommandHandler(reminderService), 2);
+        addCommandHandler(BotConstants.COMMAND_DEL_SUBSCRIPTION,
+                new DeleteSubscriptionCommandHandler(reminderService), 1);
     }
 
     /**

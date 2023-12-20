@@ -40,7 +40,7 @@ public class CancelCommandHandler implements CommandHandler {
     public BotMessage handle(long chatId, String userMessage) {
         BotMessage message = new BotMessage();
         message.setText("Вы вернулись в основное меню");
-        message.setButtons(getStartMenuButtons());
+        message.setButtons(getMainMenuButtons());
         Optional<ChatContext> chatContext = chatContextRepository.findById(chatId);
         if (chatContext.isPresent()) {
             ChatContext newChatContext = chatContext.get();
@@ -52,20 +52,14 @@ public class CancelCommandHandler implements CommandHandler {
     }
 
     /**
-     * Генерирует кнопки для начального меню
+     * Генерирует кнопки для основного меню
      *
-     * @return кнопки для начального меню
+     * @return кнопки для основного меню
      */
-    private List<Button> getStartMenuButtons() {
-        Button forecastButton = new Button();
-        forecastButton.setText(BotConstants.FORECAST_BUTTON_TEXT);
-        forecastButton.setCallback(BotConstants.CALLBACK_FORECAST);
-        Button helpButton = new Button();
-        helpButton.setText(BotConstants.HELP_BUTTON_TEXT);
-        helpButton.setCallback(BotConstants.COMMAND_HELP);
-        Button cancelButton = new Button();
-        cancelButton.setText(BotConstants.CANCEL_BUTTON_TEXT);
-        cancelButton.setCallback(BotConstants.COMMAND_CANCEL);
+    private List<Button> getMainMenuButtons() {
+        Button forecastButton = new Button(BotConstants.FORECAST_BUTTON_TEXT, BotConstants.CALLBACK_FORECAST);
+        Button helpButton = new Button(BotConstants.HELP_BUTTON_TEXT, BotConstants.COMMAND_HELP);
+        Button cancelButton = new Button(BotConstants.CANCEL_BUTTON_TEXT, BotConstants.COMMAND_CANCEL);
         return List.of(forecastButton, helpButton, cancelButton);
     }
 
