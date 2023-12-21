@@ -34,9 +34,17 @@ public class BotConstants {
      */
     public static final String COMMAND_SUBSCRIBE = "/subscribe";
     /**
+     * Команда просмотра списка прогнозов
+     */
+    public static final String COMMAND_SHOW_SUBSCRIPTIONS = "/show_subscriptions";
+    /**
      * Команда для напоминания прогноза
      */
     public static final String COMMAND_DEL_SUBSCRIPTION = "/del_subscription";
+    /**
+     * Команда редактирования напоминания прогноза
+     */
+    public static final String COMMAND_EDIT_SUBSCRIPTION = "/edit_subscription";
     /**
      * Неизвестная команда
      */
@@ -55,6 +63,8 @@ public class BotConstants {
             /info <название населенного пункта> - вывести прогноз погоды для <населенного пункта>
             /info_week <название населенного пункта> - вывести прогноз погоды для <название населенного пункта> на неделю вперёд.
             /subscribe <название населенного пункта> <время по Гринвичу> - создать напоминание прогноза погоды
+            /show_subscriptions - показать список напоминаний
+            /edit_subscription <номер напоминания> <новое название населенного пункта> <новое время по Гринвичу> - изменить напоминание прогноза погоды
             /del_subscription <номер напоминания> - удалить напоминание с указанным номером
             """;
     /**
@@ -67,6 +77,8 @@ public class BotConstants {
             /info <название населенного пункта> - вывести прогноз погоды для <населенного пункта>
             /info_week <название населенного пункта> - вывести прогноз погоды для <название населенного пункта> на неделю вперёд.
             /subscribe <название населенного пункта> <время по Гринвичу> - создать напоминание прогноза погоды
+            /show_subscriptions - показать список напоминаний
+            /edit_subscription <номер напоминания> <новое название населенного пункта> <новое время по Гринвичу> - изменить напоминание прогноза погоды
             /del_subscription <номер напоминания> - удалить напоминание с указанным номером
             """;
     /**
@@ -86,6 +98,10 @@ public class BotConstants {
      */
     public static final String ADDED_SUBSCRIPTION = "Напоминание создано. Буду присылать прогноз погоды в";
     /**
+     * Изменение напоминания
+     */
+    public static final String EDITED_SUBSCRIPTION = "Напоминание изменено. Буду присылать прогноз погоды в";
+    /**
      * Напоминание удалено
      */
     public static final String DELETED_SUBSCRIPTION = "Напоминание удалено. Больше не буду присылать прогноз погоды.";
@@ -103,5 +119,8 @@ public class BotConstants {
      */
     public static final String WRONG_REMINDER_TIME = "Некорректный формат времени. " +
             "Введите время в виде 00:00 (часы:минуты)";
-
+    /**
+     * Неустановленные напоминания
+     */
+    public static final String NO_REMINDERS = "У вас не установлены напоминания о прогнозе погоды.";
 }

@@ -10,6 +10,8 @@ import ru.urfu.weatherforecastbot.service.ReminderService;
 import ru.urfu.weatherforecastbot.service.WeatherForecastRequestHandler;
 import ru.urfu.weatherforecastbot.service.WeatherForecastRequestHandlerImpl;
 import ru.urfu.weatherforecastbot.service.WeatherForecastService;
+import ru.urfu.weatherforecastbot.util.ReminderFormatter;
+import ru.urfu.weatherforecastbot.util.ReminderFormatterImpl;
 import ru.urfu.weatherforecastbot.util.WeatherForecastFormatter;
 
 @Component
@@ -36,7 +38,7 @@ public class MessageHandlerImpl implements MessageHandler {
         botStateManager = new BotStateManager(weatherForecastRequestHandler,
                 chatStateRepository, chatContextRepository, reminderService);
         commandContainer = new CommandContainer(weatherForecastRequestHandler, chatContextRepository,
-                botStateManager, reminderService);
+                botStateManager, reminderService, new ReminderFormatterImpl());
     }
 
     /**
@@ -47,18 +49,20 @@ public class MessageHandlerImpl implements MessageHandler {
      * @param chatContextRepository репозиторий контекстов чатов
      * @param chatStateRepository   репозиторий состояний чатов
      * @param reminderService       сервис для управления напоминаниями
+     * @param reminderFormatter     форматировщик напоминаний
      */
     public MessageHandlerImpl(WeatherForecastService weatherService,
                               WeatherForecastFormatter forecastFormatter,
                               ChatContextRepository chatContextRepository,
                               ChatStateRepository chatStateRepository,
-                              ReminderService reminderService) {
+                              ReminderService reminderService,
+                              ReminderFormatter reminderFormatter) {
         WeatherForecastRequestHandler weatherForecastRequestHandler =
                 new WeatherForecastRequestHandlerImpl(weatherService, forecastFormatter);
         botStateManager = new BotStateManager(weatherForecastRequestHandler, chatStateRepository,
                 chatContextRepository, reminderService);
         commandContainer = new CommandContainer(weatherForecastRequestHandler, chatContextRepository,
-                botStateManager, reminderService);
+                botStateManager, reminderService, reminderFormatter);
     }
 
     @Override

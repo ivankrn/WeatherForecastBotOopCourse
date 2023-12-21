@@ -50,6 +50,11 @@ public class InitialStateHandler implements StateHandler {
                 message.setButtons(List.of(new Button(BotConstants.CANCEL_BUTTON_TEXT, BotConstants.COMMAND_CANCEL)));
                 botStateManager.nextState(chatId, BotState.WAITING_FOR_ADD_REMINDER_PLACE_NAME);
             }
+            case BotConstants.COMMAND_EDIT_SUBSCRIPTION -> {
+                message.setText("Введите номер напоминания, которое надо изменить");
+                message.setButtons(List.of(new Button(BotConstants.CANCEL_BUTTON_TEXT, BotConstants.COMMAND_CANCEL)));
+                botStateManager.nextState(chatId, BotState.WAITING_FOR_REMINDER_POSITION_TO_EDIT);
+            }
             case BotConstants.COMMAND_DEL_SUBSCRIPTION -> {
                 message.setText("Введите номер напоминания, которое надо удалить");
                 message.setButtons(List.of(new Button(BotConstants.CANCEL_BUTTON_TEXT, BotConstants.COMMAND_CANCEL)));

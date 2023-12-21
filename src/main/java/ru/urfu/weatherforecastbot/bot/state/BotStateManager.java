@@ -105,6 +105,18 @@ public class BotStateManager {
         allowedTransitions.add(new Transition(BotState.WAITING_FOR_ADD_REMINDER_PLACE_NAME, BotState.INITIAL));
         allowedTransitions.add(new Transition(BotState.INITIAL, BotState.WAITING_FOR_REMINDER_POSITION_TO_DELETE));
         allowedTransitions.add(new Transition(BotState.WAITING_FOR_REMINDER_POSITION_TO_DELETE, BotState.INITIAL));
+        allowedTransitions.add(new Transition(BotState.INITIAL, BotState.WAITING_FOR_REMINDER_POSITION_TO_EDIT));
+        allowedTransitions.add(
+                new Transition(BotState.WAITING_FOR_REMINDER_POSITION_TO_EDIT,
+                        BotState.WAITING_FOR_EDIT_REMINDER_PLACE_NAME)
+        );
+        allowedTransitions.add(
+                new Transition(BotState.WAITING_FOR_EDIT_REMINDER_PLACE_NAME,
+                        BotState.WAITING_FOR_EDIT_REMINDER_TIME)
+        );
+        allowedTransitions.add(new Transition(BotState.WAITING_FOR_EDIT_REMINDER_TIME, BotState.INITIAL));
+        allowedTransitions.add(new Transition(BotState.WAITING_FOR_REMINDER_POSITION_TO_EDIT, BotState.INITIAL));
+        allowedTransitions.add(new Transition(BotState.WAITING_FOR_EDIT_REMINDER_PLACE_NAME, BotState.INITIAL));
     }
 
 }

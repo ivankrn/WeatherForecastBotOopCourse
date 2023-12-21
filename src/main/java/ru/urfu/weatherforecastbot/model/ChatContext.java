@@ -22,10 +22,16 @@ public class ChatContext {
     private long chatId;
 
     /**
-     * Место прогноза погоды (если пользователь в состоянии запроса погоды)
+     * Место прогноза погоды (если пользователь в состоянии запроса погоды или добавления / редактирования напоминания)
      */
     @Column(name = "place_name")
     private String placeName;
+
+    /**
+     * Относительная позиция напоминания для редактирования (если пользователь в состоянии редактирования напоминания)
+     */
+    @Column(name = "reminder_position")
+    private Integer reminderPosition;
 
     /**
      * Возвращает ID чата
@@ -61,6 +67,24 @@ public class ChatContext {
      */
     public void setPlaceName(String placeName) {
         this.placeName = placeName;
+    }
+
+    /**
+     * Возвращает относительную позицию напоминания
+     *
+     * @return позиция напоминания
+     */
+    public Integer getReminderPosition() {
+        return reminderPosition;
+    }
+
+    /**
+     * Устанавливает относительную позицию напоминания
+     *
+     * @param reminderPosition позиция напоминания
+     */
+    public void setReminderPosition(Integer reminderPosition) {
+        this.reminderPosition = reminderPosition;
     }
 
     @Override

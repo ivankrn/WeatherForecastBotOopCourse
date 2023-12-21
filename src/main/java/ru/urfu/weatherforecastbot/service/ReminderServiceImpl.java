@@ -97,6 +97,11 @@ public class ReminderServiceImpl implements ReminderService {
     }
 
     @Override
+    public List<Reminder> findAllForChatId(long chatId) {
+        return reminderRepository.findAllByChatId(chatId);
+    }
+
+    @Override
     public void addReminder(long chatId, String placeName, String time) throws DateTimeParseException {
         LocalTime parsedTime = LocalTime.parse(time, dateTimeFormatter);
         Reminder reminder = new Reminder();
@@ -107,6 +112,25 @@ public class ReminderServiceImpl implements ReminderService {
 
         reminder = reminderRepository.save(reminder);
         scheduleReminder(reminder);
+    }
+
+    @Override
+    public void editReminderByRelativePosition(long chatId, int position, String newPlaceName, String newTime)
+            throws DateTimeParseException, IllegalArgumentException {
+        List<Reminder> reminders = reminderRepository.findAllByChatId(chatId);
+
+        if (position <= 0 || position > reminders.size()) {
+            throw new IllegalArgumentException(WRONG_REMINDER_POSITION_EXCEPTION_MESSAGE);
+        }
+
+        LocalTime parsedTime = LocalTime.parse(newTime, dateTimeFormatter);
+        Reminder reminderToEdit = reminders.get(position - 1);
+
+        cancelReminderById(reminderToEdit.getId());
+        reminderToEdit.setPlaceName(newPlaceName);
+        reminderToEdit.setTime(parsedTime);
+        reminderToEdit = reminderRepository.save(reminderToEdit);
+        scheduleReminder(reminderToEdit);
     }
 
     @Override

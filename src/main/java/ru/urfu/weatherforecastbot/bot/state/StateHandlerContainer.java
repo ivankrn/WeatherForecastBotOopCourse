@@ -48,6 +48,12 @@ public class StateHandlerContainer {
                 new WaitingForAddReminderTimeStateHandler(reminderService, botStateManager, chatContextRepository));
         stateHandlers.put(BotState.WAITING_FOR_REMINDER_POSITION_TO_DELETE,
                 new WaitingForReminderPositionToDeleteStateHandler(reminderService, botStateManager));
+        stateHandlers.put(BotState.WAITING_FOR_REMINDER_POSITION_TO_EDIT,
+                new WaitingForReminderPositionToEditStateHandler(botStateManager, chatContextRepository));
+        stateHandlers.put(BotState.WAITING_FOR_EDIT_REMINDER_PLACE_NAME,
+                new WaitingForEditReminderPlaceNameStateHandler(botStateManager, chatContextRepository));
+        stateHandlers.put(BotState.WAITING_FOR_EDIT_REMINDER_TIME,
+                new WaitingForEditReminderTimeStateHandler(reminderService, botStateManager, chatContextRepository));
     }
 
     /**
