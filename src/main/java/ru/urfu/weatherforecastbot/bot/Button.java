@@ -18,6 +18,17 @@ public class Button {
     private String callback;
 
     /**
+     * Создает экземпляр {@link Button}
+     *
+     * @param text текст кнопки
+     * @param callback callback кнопки
+     */
+    public Button(String text, String callback) {
+        this.text = text;
+        this.callback = callback;
+    }
+
+    /**
      * Возвращает текст кнопки
      *
      * @return текст кнопки
