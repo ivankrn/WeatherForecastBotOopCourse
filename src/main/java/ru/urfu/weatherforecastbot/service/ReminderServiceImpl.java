@@ -112,7 +112,7 @@ public class ReminderServiceImpl implements ReminderService {
     @Override
     public void deleteReminderByRelativePosition(long chatId, int position) throws IllegalArgumentException {
         List<Reminder> reminders = reminderRepository.findAllByChatId(chatId);
-        if (position <= 0 || position < reminders.size() || position > reminders.size()) {
+        if (position <= 0 || position > reminders.size()) {
             throw new IllegalArgumentException(WRONG_REMINDER_POSITION_EXCEPTION_MESSAGE);
         }
         Reminder reminderToDelete = reminders.get(position - 1);
