@@ -836,19 +836,32 @@ class MessageHandlerImplTest {
      * </ul>
      */
     @Test
-    @DisplayName("Тест на команду редактирования напоминания")
     void testEditSubscriptionCommand() {
         long chatId = 1L;
-        BotMessage responseMessage = messageHandler.handle(chatId, "/edit_subscription 1 Москва 10:00");
+        BotMessage correctMessageResponse = messageHandler.handle(chatId, "/edit_subscription 1 Москва 10:00");
 
         assertEquals("Напоминание изменено. Буду присылать прогноз погоды в 10:00",
-                responseMessage.getText());
+                correctMessageResponse.getText());
         verify(reminderService)
                 .editReminderByRelativePosition(
                         chatId,
                         1,
                         "Москва",
                         "10:00");
+
+        doThrow(DateTimeParseException.class)
+                .when(reminderService)
+                .editReminderByRelativePosition(chatId, 1, "Москва", "111");
+        BotMessage wrongTimeMessageResponse = messageHandler.handle(chatId, "/edit_subscription 1 Москва 111");
+        assertEquals("Некорректный формат времени. Введите время в виде 00:00 (часы:минуты)",
+                wrongTimeMessageResponse.getText());
+
+        doThrow(IllegalArgumentException.class)
+                .when(reminderService)
+                .editReminderByRelativePosition(chatId, -1, "Москва", "10:00");
+        BotMessage wrongPositionMessageResponse = messageHandler.handle(chatId,
+                "/edit_subscription -1 Москва 10:00");
+        assertEquals("Нет напоминания с таким номером.", wrongPositionMessageResponse.getText());
     }
 
     /**
