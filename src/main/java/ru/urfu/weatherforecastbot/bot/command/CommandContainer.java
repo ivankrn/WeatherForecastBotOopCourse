@@ -6,6 +6,7 @@ import ru.urfu.weatherforecastbot.bot.state.BotStateManager;
 import ru.urfu.weatherforecastbot.database.ChatContextRepository;
 import ru.urfu.weatherforecastbot.service.ReminderService;
 import ru.urfu.weatherforecastbot.service.WeatherForecastRequestHandler;
+import ru.urfu.weatherforecastbot.util.ReminderFormatter;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -31,11 +32,13 @@ public class CommandContainer {
      * @param chatContextRepository         репозиторий контекстов чатов
      * @param botStateManager               менеджер состояний бота
      * @param reminderService               сервис для управления напоминаниями
+     * @param reminderFormatter             форматировщик напоминаний
      */
     public CommandContainer(WeatherForecastRequestHandler weatherForecastRequestHandler,
                             ChatContextRepository chatContextRepository,
                             BotStateManager botStateManager,
-                            ReminderService reminderService) {
+                            ReminderService reminderService,
+                            ReminderFormatter reminderFormatter) {
         addCommandHandler(BotConstants.COMMAND_START,
                 new StartCommandHandler(chatContextRepository, botStateManager), 0);
         addCommandHandler(BotConstants.COMMAND_HELP, new HelpCommandHandler(), 0);
@@ -47,6 +50,10 @@ public class CommandContainer {
                 new CancelCommandHandler(chatContextRepository, botStateManager), 0);
         addCommandHandler(BotConstants.COMMAND_SUBSCRIBE,
                 new SubscribeCommandHandler(reminderService), 2);
+        addCommandHandler(BotConstants.COMMAND_EDIT_SUBSCRIPTION,
+                new EditSubscriptionCommandHandler(reminderService), 3);
+        addCommandHandler(BotConstants.COMMAND_SHOW_SUBSCRIPTIONS,
+                new ShowSubscriptionsCommandHandler(reminderService, reminderFormatter), 0);
         addCommandHandler(BotConstants.COMMAND_DEL_SUBSCRIPTION,
                 new DeleteSubscriptionCommandHandler(reminderService), 1);
     }

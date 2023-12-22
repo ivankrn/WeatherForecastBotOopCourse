@@ -1,11 +1,22 @@
 package ru.urfu.weatherforecastbot.service;
 
+import ru.urfu.weatherforecastbot.model.Reminder;
+
 import java.time.format.DateTimeParseException;
+import java.util.List;
 
 /**
  * Сервис для управления напоминаниями
  */
 public interface ReminderService {
+
+    /**
+     * Возврат всех установленных напоминаний для определенного чата
+     *
+     * @param chatId ID чата
+     * @return все установленные напоминания
+     */
+    List<Reminder> findAllForChatId(long chatId);
 
     /**
      * Добавление напоминания для определенного чата, места и времени (UTC - стандарт)
@@ -16,6 +27,19 @@ public interface ReminderService {
      * @throws DateTimeParseException если произошла ошибка парсинга
      */
     void addReminder(long chatId, String placeName, String time) throws DateTimeParseException;
+
+    /**
+     * Редактирование напоминаний под указанным номером для определенного чата, места и времени (UTC - стандарт)
+     *
+     * @param chatId       ID чата
+     * @param position     позиция напоминания в списке
+     * @param newPlaceName новое место
+     * @param newTime      новое время в строковом виде (UTC - стандарт)
+     * @throws DateTimeParseException   если произошла ошибка парсинга
+     * @throws IllegalArgumentException если позиция неправильная
+     */
+    void editReminderByRelativePosition(long chatId, int position, String newPlaceName, String newTime)
+            throws DateTimeParseException, IllegalArgumentException;
 
     /**
      * Удаляет напоминание по относительному положению в списке напоминаний пользователя.

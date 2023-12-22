@@ -251,4 +251,31 @@ class ReminderServiceImplTest {
         assertEquals("Wrong reminder position provided!", exception.getMessage());
     }
 
+    /**
+     * Проверяет корректное редактирование существующего напоминания пользователя.<br>
+     * Проверки:
+     * <ul>
+     *     <li>Если пользователь вызывает метод редактирования напоминания,
+     *     то соответствующее напоминание должно быть изменено.</li>
+     * </ul>
+     */
+    @Test
+    @DisplayName("Тест редактирования напоминания")
+    void testEditReminder() {
+        long chatId = 1L;
+        Reminder reminder = new Reminder();
+        reminder.setId(1L);
+        reminder.setChatId(chatId);
+        reminder.setPlaceName("Екатеринбург");
+        reminder.setTime(LocalTime.of(5, 0));
+        when(reminderRepository.findAllByChatId(chatId)).thenReturn(List.of(reminder));
+        when(reminderRepository.save(any())).thenReturn(reminder);
+        reminderService.addReminder(chatId, "Екатеринбург", "05:00");
+
+        reminderService.editReminderByRelativePosition(chatId, 1, "Москва", "10:00");
+
+        assertEquals(chatId, reminder.getChatId());
+        assertEquals("Москва", reminder.getPlaceName());
+        assertEquals(LocalTime.of(10, 0), reminder.getTime());
+    }
 }

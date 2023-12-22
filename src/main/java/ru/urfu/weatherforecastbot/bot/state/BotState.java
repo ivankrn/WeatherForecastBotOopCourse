@@ -35,5 +35,17 @@ public enum BotState {
     /**
      * Ожидание ввода позиции напоминания, которое надо удалить
      */
-    WAITING_FOR_REMINDER_POSITION_TO_DELETE
+    WAITING_FOR_REMINDER_POSITION_TO_DELETE,
+    /**
+     * Ожидание ввода позиции для редактирования напоминания
+     */
+    WAITING_FOR_REMINDER_POSITION_TO_EDIT,
+    /**
+     * Ожидание ввода места для редактирования напоминания
+     */
+    WAITING_FOR_EDIT_REMINDER_PLACE_NAME,
+    /**
+     * Ожидание ввода времени для редактирования напоминания
+     */
+    WAITING_FOR_EDIT_REMINDER_TIME
 }

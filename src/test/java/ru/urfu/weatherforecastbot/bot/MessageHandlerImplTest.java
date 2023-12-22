@@ -13,10 +13,12 @@ import ru.urfu.weatherforecastbot.database.ChatStateRepository;
 import ru.urfu.weatherforecastbot.model.*;
 import ru.urfu.weatherforecastbot.service.ReminderService;
 import ru.urfu.weatherforecastbot.service.WeatherForecastService;
+import ru.urfu.weatherforecastbot.util.ReminderFormatterImpl;
 import ru.urfu.weatherforecastbot.util.WeatherForecastFormatter;
 import ru.urfu.weatherforecastbot.util.WeatherForecastFormatterImpl;
 
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
@@ -65,7 +67,7 @@ class MessageHandlerImplTest {
         this.chatStateRepository = chatStateRepository;
         this.reminderService = reminderService;
         messageHandler = new MessageHandlerImpl(weatherService, forecastFormatter,
-                chatContextRepository, chatStateRepository, reminderService);
+                chatContextRepository, chatStateRepository, reminderService, new ReminderFormatterImpl());
     }
 
     @Test
@@ -537,6 +539,8 @@ class MessageHandlerImplTest {
                         /info <название населенного пункта> - вывести прогноз погоды для <населенного пункта>
                         /info_week <название населенного пункта> - вывести прогноз погоды для <название населенного пункта> на неделю вперёд.
                         /subscribe <название населенного пункта> <время по Гринвичу> - создать напоминание прогноза погоды
+                        /show_subscriptions - показать список напоминаний
+                        /edit_subscription <номер напоминания> <новое название населенного пункта> <новое время по Гринвичу> - изменить напоминание прогноза погоды
                         /del_subscription <номер напоминания> - удалить напоминание с указанным номером
                         """,
                 responseMessage.getText());
@@ -561,6 +565,8 @@ class MessageHandlerImplTest {
                         /info <название населенного пункта> - вывести прогноз погоды для <населенного пункта>
                         /info_week <название населенного пункта> - вывести прогноз погоды для <название населенного пункта> на неделю вперёд.
                         /subscribe <название населенного пункта> <время по Гринвичу> - создать напоминание прогноза погоды
+                        /show_subscriptions - показать список напоминаний
+                        /edit_subscription <номер напоминания> <новое название населенного пункта> <новое время по Гринвичу> - изменить напоминание прогноза погоды
                         /del_subscription <номер напоминания> - удалить напоминание с указанным номером
                         """,
                 responseMessage.getText());
@@ -778,6 +784,84 @@ class MessageHandlerImplTest {
         assertEquals("Напоминание создано. Буду присылать прогноз погоды в 05:00",
                 timeMessageResponse.getText());
         verify(reminderService).addReminder(chatId, "Екатеринбург", "05:00");
+    }
+
+    /**
+     * Проверяет корректное выполнение команды и форматирование списка напоминаний.<br>
+     * <br>
+     * Проверки:
+     * <ul>
+     *     <li>Если у пользователя есть созданные напоминания,
+     *     то бот должен вернуть отформатированный список напоминаний.</li>
+     *     <li>Если у пользователя нет созданных напоминаний,
+     *     то бот должен вернуть сообщение о пустом списке.</li>
+     * </ul>
+     * <br>
+     */
+    @Test
+    @DisplayName("Тест на команду просмотра списка напоминаний")
+    void testShowSubscriptionsCommand() {
+        long chatId = 1L;
+        String placeName = "Екатеринбург";
+        Reminder firstReminder = new Reminder();
+        firstReminder.setId(1L);
+        firstReminder.setChatId(chatId);
+        firstReminder.setPlaceName(placeName);
+        firstReminder.setTime(LocalTime.of(5, 0));
+        Reminder secondReminder = new Reminder();
+        secondReminder.setId(2L);
+        secondReminder.setChatId(chatId);
+        secondReminder.setPlaceName(placeName);
+        secondReminder.setTime(LocalTime.of(17, 0));
+        List<Reminder> reminders = List.of(firstReminder, secondReminder);
+        when(reminderService.findAllForChatId(chatId)).thenReturn(reminders);
+
+        BotMessage responseMessage = messageHandler.handle(chatId, "/show_subscriptions");
+
+        assertEquals("""
+                1) Екатеринбург, 05:00
+                2) Екатеринбург, 17:00
+                """, responseMessage.getText());
+    }
+
+    /**
+     * Проверяет корректное выполнение команды и изменение соответствующего напоминания.<br>
+     * <br>
+     * Проверки:
+     * <ul>
+     *     <li>Если пользователь вводит корректные данные для редактирования напоминания,
+     *     то бот должен подтвердить изменение.</li>
+     *     <li>Если пользователь вводит некорректные данные,
+     *     то бот должен вернуть соответствующее сообщение об ошибке.</li>
+     * </ul>
+     */
+    @Test
+    void testEditSubscriptionCommand() {
+        long chatId = 1L;
+        BotMessage correctMessageResponse = messageHandler.handle(chatId, "/edit_subscription 1 Москва 10:00");
+
+        assertEquals("Напоминание изменено. Буду присылать прогноз погоды в 10:00",
+                correctMessageResponse.getText());
+        verify(reminderService)
+                .editReminderByRelativePosition(
+                        chatId,
+                        1,
+                        "Москва",
+                        "10:00");
+
+        doThrow(DateTimeParseException.class)
+                .when(reminderService)
+                .editReminderByRelativePosition(chatId, 1, "Москва", "111");
+        BotMessage wrongTimeMessageResponse = messageHandler.handle(chatId, "/edit_subscription 1 Москва 111");
+        assertEquals("Некорректный формат времени. Введите время в виде 00:00 (часы:минуты)",
+                wrongTimeMessageResponse.getText());
+
+        doThrow(IllegalArgumentException.class)
+                .when(reminderService)
+                .editReminderByRelativePosition(chatId, -1, "Москва", "10:00");
+        BotMessage wrongPositionMessageResponse = messageHandler.handle(chatId,
+                "/edit_subscription -1 Москва 10:00");
+        assertEquals("Нет напоминания с таким номером.", wrongPositionMessageResponse.getText());
     }
 
     /**
