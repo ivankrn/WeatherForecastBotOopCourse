@@ -6,9 +6,12 @@ import ru.urfu.weatherforecastbot.bot.command.CommandContainer;
 import ru.urfu.weatherforecastbot.bot.state.BotStateManager;
 import ru.urfu.weatherforecastbot.database.ChatContextRepository;
 import ru.urfu.weatherforecastbot.database.ChatStateRepository;
+import ru.urfu.weatherforecastbot.service.ReminderService;
 import ru.urfu.weatherforecastbot.service.WeatherForecastRequestHandler;
 import ru.urfu.weatherforecastbot.service.WeatherForecastRequestHandlerImpl;
 import ru.urfu.weatherforecastbot.service.WeatherForecastService;
+import ru.urfu.weatherforecastbot.util.ReminderFormatter;
+import ru.urfu.weatherforecastbot.util.ReminderFormatterImpl;
 import ru.urfu.weatherforecastbot.util.WeatherForecastFormatter;
 
 @Component
@@ -23,17 +26,19 @@ public class MessageHandlerImpl implements MessageHandler {
      * @param weatherService        сервис для получения прогнозов погоды
      * @param chatContextRepository репозиторий контекстов чатов
      * @param chatStateRepository   репозиторий состояний чатов
+     * @param reminderService       сервис для управления напоминаниями
      */
     @Autowired
     public MessageHandlerImpl(WeatherForecastService weatherService,
                               ChatContextRepository chatContextRepository,
-                              ChatStateRepository chatStateRepository) {
+                              ChatStateRepository chatStateRepository,
+                              ReminderService reminderService) {
         WeatherForecastRequestHandler weatherForecastRequestHandler =
                 new WeatherForecastRequestHandlerImpl(weatherService);
         botStateManager = new BotStateManager(weatherForecastRequestHandler,
-                chatStateRepository, chatContextRepository);
+                chatStateRepository, chatContextRepository, reminderService);
         commandContainer = new CommandContainer(weatherForecastRequestHandler, chatContextRepository,
-                botStateManager);
+                botStateManager, reminderService, new ReminderFormatterImpl());
     }
 
     /**
@@ -43,17 +48,21 @@ public class MessageHandlerImpl implements MessageHandler {
      * @param forecastFormatter     форматировщик прогноза погоды в удобочитаемый вид
      * @param chatContextRepository репозиторий контекстов чатов
      * @param chatStateRepository   репозиторий состояний чатов
+     * @param reminderService       сервис для управления напоминаниями
+     * @param reminderFormatter     форматировщик напоминаний
      */
     public MessageHandlerImpl(WeatherForecastService weatherService,
                               WeatherForecastFormatter forecastFormatter,
                               ChatContextRepository chatContextRepository,
-                              ChatStateRepository chatStateRepository) {
+                              ChatStateRepository chatStateRepository,
+                              ReminderService reminderService,
+                              ReminderFormatter reminderFormatter) {
         WeatherForecastRequestHandler weatherForecastRequestHandler =
                 new WeatherForecastRequestHandlerImpl(weatherService, forecastFormatter);
         botStateManager = new BotStateManager(weatherForecastRequestHandler, chatStateRepository,
-                chatContextRepository);
+                chatContextRepository, reminderService);
         commandContainer = new CommandContainer(weatherForecastRequestHandler, chatContextRepository,
-                botStateManager);
+                botStateManager, reminderService, reminderFormatter);
     }
 
     @Override

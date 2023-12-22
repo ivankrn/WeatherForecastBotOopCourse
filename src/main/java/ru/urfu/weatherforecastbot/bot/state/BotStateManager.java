@@ -4,6 +4,7 @@ import ru.urfu.weatherforecastbot.bot.BotMessage;
 import ru.urfu.weatherforecastbot.database.ChatContextRepository;
 import ru.urfu.weatherforecastbot.database.ChatStateRepository;
 import ru.urfu.weatherforecastbot.model.ChatState;
+import ru.urfu.weatherforecastbot.service.ReminderService;
 import ru.urfu.weatherforecastbot.service.WeatherForecastRequestHandler;
 
 import java.util.HashSet;
@@ -33,13 +34,15 @@ public class BotStateManager {
      * @param weatherForecastRequestHandler обработчик запросов прогнозов погоды
      * @param chatStateRepository           репозиторий состояний чатов
      * @param chatContextRepository         репозиторий контекстов чатов
+     * @param reminderService               сервис для управления напоминаниями
      */
     public BotStateManager(WeatherForecastRequestHandler weatherForecastRequestHandler,
                            ChatStateRepository chatStateRepository,
-                           ChatContextRepository chatContextRepository) {
+                           ChatContextRepository chatContextRepository,
+                           ReminderService reminderService) {
         this.chatStateRepository = chatStateRepository;
         stateHandlerContainer = new StateHandlerContainer(weatherForecastRequestHandler, this,
-                chatContextRepository);
+                chatContextRepository, reminderService);
         initTransitions();
     }
 
@@ -95,6 +98,25 @@ public class BotStateManager {
         allowedTransitions.add(new Transition(BotState.WAITING_FOR_PLACE_NAME, BotState.WAITING_FOR_TIME_PERIOD));
         allowedTransitions.add(new Transition(BotState.WAITING_FOR_TIME_PERIOD, BotState.INITIAL));
         allowedTransitions.add(new Transition(BotState.WAITING_FOR_PLACE_NAME, BotState.INITIAL));
+        allowedTransitions.add(new Transition(BotState.INITIAL, BotState.WAITING_FOR_ADD_REMINDER_PLACE_NAME));
+        allowedTransitions.add(
+                new Transition(BotState.WAITING_FOR_ADD_REMINDER_PLACE_NAME, BotState.WAITING_FOR_ADD_REMINDER_TIME));
+        allowedTransitions.add(new Transition(BotState.WAITING_FOR_ADD_REMINDER_TIME, BotState.INITIAL));
+        allowedTransitions.add(new Transition(BotState.WAITING_FOR_ADD_REMINDER_PLACE_NAME, BotState.INITIAL));
+        allowedTransitions.add(new Transition(BotState.INITIAL, BotState.WAITING_FOR_REMINDER_POSITION_TO_DELETE));
+        allowedTransitions.add(new Transition(BotState.WAITING_FOR_REMINDER_POSITION_TO_DELETE, BotState.INITIAL));
+        allowedTransitions.add(new Transition(BotState.INITIAL, BotState.WAITING_FOR_REMINDER_POSITION_TO_EDIT));
+        allowedTransitions.add(
+                new Transition(BotState.WAITING_FOR_REMINDER_POSITION_TO_EDIT,
+                        BotState.WAITING_FOR_EDIT_REMINDER_PLACE_NAME)
+        );
+        allowedTransitions.add(
+                new Transition(BotState.WAITING_FOR_EDIT_REMINDER_PLACE_NAME,
+                        BotState.WAITING_FOR_EDIT_REMINDER_TIME)
+        );
+        allowedTransitions.add(new Transition(BotState.WAITING_FOR_EDIT_REMINDER_TIME, BotState.INITIAL));
+        allowedTransitions.add(new Transition(BotState.WAITING_FOR_REMINDER_POSITION_TO_EDIT, BotState.INITIAL));
+        allowedTransitions.add(new Transition(BotState.WAITING_FOR_EDIT_REMINDER_PLACE_NAME, BotState.INITIAL));
     }
 
 }

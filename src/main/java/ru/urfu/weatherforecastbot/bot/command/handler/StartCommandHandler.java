@@ -58,15 +58,9 @@ public class StartCommandHandler implements CommandHandler {
      * @return кнопки для начального меню
      */
     private List<Button> getStartMenuButtons() {
-        Button forecastButton = new Button();
-        forecastButton.setText(BotConstants.FORECAST_BUTTON_TEXT);
-        forecastButton.setCallback(BotConstants.CALLBACK_FORECAST);
-        Button helpButton = new Button();
-        helpButton.setText(BotConstants.HELP_BUTTON_TEXT);
-        helpButton.setCallback(BotConstants.COMMAND_HELP);
-        Button cancelButton = new Button();
-        cancelButton.setText(BotConstants.CANCEL_BUTTON_TEXT);
-        cancelButton.setCallback(BotConstants.COMMAND_CANCEL);
+        Button forecastButton = new Button(BotConstants.FORECAST_BUTTON_TEXT, BotConstants.CALLBACK_FORECAST);
+        Button helpButton = new Button(BotConstants.HELP_BUTTON_TEXT, BotConstants.COMMAND_HELP);
+        Button cancelButton = new Button(BotConstants.CANCEL_BUTTON_TEXT, BotConstants.COMMAND_CANCEL);
         return List.of(forecastButton, helpButton, cancelButton);
     }
 }

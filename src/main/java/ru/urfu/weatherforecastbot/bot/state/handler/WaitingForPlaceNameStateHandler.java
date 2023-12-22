@@ -12,7 +12,7 @@ import ru.urfu.weatherforecastbot.util.ForecastTimePeriod;
 import java.util.List;
 
 /**
- * Обработчик состояния ожидания места
+ * Обработчик состояния ожидания места для прогноза погоды
  */
 public class WaitingForPlaceNameStateHandler implements StateHandler {
 
@@ -59,18 +59,11 @@ public class WaitingForPlaceNameStateHandler implements StateHandler {
      * @return кнопки для меню периода времени
      */
     private List<Button> getTimePeriodMenuButtons() {
-        Button todayButton = new Button();
-        todayButton.setText(ForecastTimePeriod.TODAY.getText());
-        todayButton.setCallback(ForecastTimePeriod.TODAY.getText());
-        Button tomorrowButton = new Button();
-        tomorrowButton.setText(ForecastTimePeriod.TOMORROW.getText());
-        tomorrowButton.setCallback(ForecastTimePeriod.TOMORROW.getText());
-        Button weekButton = new Button();
-        weekButton.setText(ForecastTimePeriod.WEEK.getText());
-        weekButton.setCallback(ForecastTimePeriod.WEEK.getText());
-        Button cancelButton = new Button();
-        cancelButton.setText(BotConstants.CANCEL_BUTTON_TEXT);
-        cancelButton.setCallback(BotConstants.COMMAND_CANCEL);
+        Button todayButton = new Button(ForecastTimePeriod.TODAY.getText(), ForecastTimePeriod.TODAY.getText());
+        Button tomorrowButton = new Button(ForecastTimePeriod.TOMORROW.getText(), ForecastTimePeriod.TOMORROW.getText());
+        Button weekButton = new Button(ForecastTimePeriod.WEEK.getText(), ForecastTimePeriod.WEEK.getText());
+        Button cancelButton = new Button(BotConstants.CANCEL_BUTTON_TEXT, BotConstants.COMMAND_CANCEL);
         return List.of(todayButton, tomorrowButton, weekButton, cancelButton);
     }
+
 }
