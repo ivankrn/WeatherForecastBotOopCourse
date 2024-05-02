@@ -10,7 +10,10 @@ import ru.urfu.weatherforecastbot.bot.BotMessage;
 import ru.urfu.weatherforecastbot.bot.command.handler.CommandHandler;
 import ru.urfu.weatherforecastbot.bot.state.BotStateManager;
 import ru.urfu.weatherforecastbot.database.ChatContextRepository;
+import ru.urfu.weatherforecastbot.service.ReminderService;
 import ru.urfu.weatherforecastbot.service.WeatherForecastRequestHandler;
+import ru.urfu.weatherforecastbot.util.ReminderFormatter;
+import ru.urfu.weatherforecastbot.util.ReminderFormatterImpl;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -26,13 +29,17 @@ class CommandContainerTest {
     private ChatContextRepository chatContextRepository;
     @Mock
     private BotStateManager botStateManager;
+    @Mock
+    private ReminderService reminderService;
+    private final ReminderFormatter reminderFormatter = new ReminderFormatterImpl();
 
     private CommandContainer commandContainer;
 
     @BeforeEach
     void setUp() {
         this.commandContainer =
-                new CommandContainer(weatherForecastRequestHandler, chatContextRepository, botStateManager);
+                new CommandContainer(weatherForecastRequestHandler, chatContextRepository,
+                        botStateManager, reminderService, reminderFormatter);
     }
 
     @Test
