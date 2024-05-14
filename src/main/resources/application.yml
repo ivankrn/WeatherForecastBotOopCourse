@@ -1,0 +1,11 @@
+bot:
+  name: ${BOT_NAME}
+  token: ${BOT_TOKEN}
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: update
+  datasource:
+    url: ${SPRING_DATASOURCE_URL}
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}

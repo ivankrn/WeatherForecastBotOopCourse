@@ -1,0 +1,36 @@
+version: '3.8'
+services:
+  weather-bot:
+    image: cr.yandex/crpr4jge1jodsqf5sq8a/weather-bot:1.0
+    container_name: weather-bot
+    depends_on:
+      weather-bot-db:
+        condition: service_healthy
+    environment:
+      - BOT_NAME=${BOT_NAME}
+      - BOT_TOKEN=${BOT_TOKEN}
+      - SPRING_DATASOURCE_URL=${DATASOURCE_URL}
+      - SPRING_DATASOURCE_USERNAME=${DATASOURCE_USERNAME}
+      - SPRING_DATASOURCE_PASSWORD=${DATASOURCE_PASSWORD}
+
+  weather-bot-db:
+    image: postgres:16.2
+    container_name: weather-bot-db
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=${DATASOURCE_USERNAME}
+      - PGUSER=${DATASOURCE_USERNAME}
+      - POSTGRES_PASSWORD=${DATASOURCE_PASSWORD}
+    volumes:
+      - ./src/main/resources/db/create_db.sql:/docker-entrypoint-initdb.d/create_db.sql
+      - weather-bot-db-data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready", "--quiet"]
+      interval: 5s
+      timeout: 10s
+      retries: 10
+
+volumes:
+  weather-bot-db-data:
