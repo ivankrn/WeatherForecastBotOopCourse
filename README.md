@@ -5,13 +5,71 @@
 Для того, чтобы бот мог начать работу, создайте в директории проекта файл .env и определите в нем необходимые
 переменные окружения. Шаблон .env представлен ниже:
 
-```
+```properties
 BOT_NAME=<название бота>
 BOT_TOKEN=<токен бота>
 DATASOURCE_URL=<URL для подключения к БД>
 DATASOURCE_USERNAME=<пользователь для подключения к БД>
 DATASOURCE_PASSWORD=<пароль для подключения к БД>
 ```
+
+## Развертывание с использованием Terraform на платформе Yandex Cloud
+
+Для развертывания с использованием Terraform, создайте в директории со спецификацией Terraform *my-config.tf* файлы
+*declaration.tftpl* и *cloud_config.yaml*.
+
+Пример файла *declaration.tftpl*:
+```yaml
+spec:
+  containers:
+  - image: <образ Docker>
+    env:
+    - name: BOT_NAME
+      value: ${bot_name}
+    - name: BOT_TOKEN
+      value: ${bot_token}
+    - name: SPRING_DATASOURCE_URL
+      value: jdbc:postgresql://${postgres_fqdn}:6432/${db_name}
+    - name: SPRING_DATASOURCE_USERNAME
+      value: ${db_user}
+    - name: SPRING_DATASOURCE_PASSWORD
+      value: ${db_password}
+    restartPolicy: Always
+    stdin: false
+    tty: false
+
+```
+
+Пример файла *cloud-init.yaml*:
+```yaml
+#cloud-config
+ssh_pwauth: no
+users:
+  - name: yc-user
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    # Необходимо для доступа к sudo для пользователя. Можно закомментировать при разворачивании в production.
+    # groups: sudo
+    shell: /bin/bash
+    # Настройка ключей для подключения по SSH.
+    ssh-authorized-keys:
+      - <SSH ключ, который будет использоваться для подключения>
+# Необходимо для смены пароля пользователя. Необязательно.
+chpasswd:
+  list: |
+    yc-user:<пароль, который будет установлен для пользователя yc-user>
+  expire: false
+```
+
+Перед развертыванием, также необходимо задать следующие переменные Terraform:
+1)	yandex_oauth_token - OAuth токен для доступа к Yandex Cloud;
+2)	yandex_cloud_id - ID облака Yandex Cloud;
+3)	yandex_folder_id - ID каталога Yandex Cloud;
+4)	yandex_zone - зону доступности Yandex Cloud по умолчанию;
+5)	bot_name - название бота;
+6)	bot_token - токен бота Telegram;
+7)	db_name - название базы данных для создания;
+8)	db_user - имя пользователя БД;
+9)	db_password - пароль пользователя БД.
 
 ## Задача 1
 
